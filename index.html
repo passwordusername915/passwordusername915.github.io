@@ -3,719 +3,1448 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Advanced 2D Fantasy RPG</title>
+<title>Knowledge Rush - Dungeon RPG</title>
 <style>
-* { box-sizing: border-box; }
-body { 
-  margin: 0; 
-  padding: 0; 
-  font-family: Arial, sans-serif; 
-  background: #0a0e27;
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a1a;--panel:#12122a;--border:#2a2a4a;--gold:#ffd200;--red:#ff4757;--green:#2ed573;--blue:#5b8cff;--purple:#a855f7;--text:#e0dff0;--muted:#7a78a0;--card:#1a1a35}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+h1,h2,h3,.title{font-family:'Fredoka One',cursive}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* Layout */
+.game-container{display:none;width:100%;max-width:1100px;margin:0 auto;padding:12px;gap:12px}
+.game-container.active{display:grid;grid-template-columns:260px 1fr;grid-template-rows:auto 1fr auto;min-height:100vh}
+
+/* Sidebar */
+.sidebar{grid-row:1/4;display:flex;flex-direction:column;gap:10px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
+
+/* Character panel */
+.char-panel .char-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.char-avatar{width:48px;height:48px;border-radius:12px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:1.8rem;border:2px solid var(--border)}
+.char-name{font-weight:800;font-size:1rem;color:#fff}
+.char-class{font-size:0.75rem;color:var(--muted);font-weight:700}
+.char-level{font-size:0.75rem;color:var(--gold);font-weight:800}
+
+.stat-bars{display:flex;flex-direction:column;gap:8px}
+.stat-bar-row{display:flex;align-items:center;gap:8px}
+.stat-bar-row .label{font-size:0.7rem;font-weight:800;min-width:28px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.stat-bar-row .values{font-size:0.7rem;font-weight:700;min-width:56px;text-align:right;color:#fff}
+.bar-track{flex:1;height:8px;background:var(--card);border-radius:10px;overflow:hidden}
+.bar-fill{height:100%;border-radius:10px;transition:width 0.4s ease}
+.bar-fill.hp{background:linear-gradient(90deg,#ff4757,#ff6b81)}
+.bar-fill.xp{background:linear-gradient(90deg,#5b8cff,#a855f7)}
+.bar-fill.shield{background:linear-gradient(90deg,#ffa502,#ffd200)}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.stat-cell{background:var(--card);border-radius:8px;padding:6px 8px;text-align:center}
+.stat-cell .val{font-size:1rem;font-weight:800;color:#fff}
+.stat-cell .lbl{font-size:0.6rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+
+/* Inventory */
+.inv-panel .inv-title{font-size:0.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.inv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.inv-slot{aspect-ratio:1;background:var(--card);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:1px solid transparent;cursor:default;position:relative;transition:all 0.2s}
+.inv-slot.has-item{border-color:var(--border);cursor:pointer}
+.inv-slot.has-item:hover{border-color:var(--gold);transform:scale(1.08)}
+.inv-slot .count{position:absolute;bottom:1px;right:3px;font-size:0.55rem;font-weight:800;color:var(--gold)}
+
+/* Minimap */
+.minimap-panel .map-title{font-size:0.8rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.minimap{display:grid;gap:2px;justify-content:center}
+.minimap-cell{width:18px;height:18px;border-radius:3px;background:var(--bg)}
+.minimap-cell.visited{background:var(--card);border:1px solid var(--border)}
+.minimap-cell.current{background:var(--gold);box-shadow:0 0 8px rgba(255,210,0,0.5)}
+.minimap-cell.boss{background:var(--red)}
+.minimap-cell.exit{background:var(--green)}
+
+/* Top bar */
+.top-bar{grid-column:2;display:flex;align-items:center;justify-content:space-between;padding:4px 0}
+.floor-badge{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1rem}
+.floor-badge .emoji{font-size:1.3rem}
+.zone-name{color:var(--gold);font-family:'Fredoka One',cursive;font-size:1.1rem}
+.gold-badge{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:6px 14px;font-weight:800;color:var(--gold)}
+
+/* Main area */
+.main-area{grid-column:2;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative}
+
+/* Room display */
+.room-view{width:100%;max-width:700px;position:relative}
+.room-scene{background:var(--panel);border:2px solid var(--border);border-radius:20px;padding:30px;min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.room-scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(255,210,0,0.02),transparent 70%);pointer-events:none}
+
+.room-icon{font-size:4rem;margin-bottom:12px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.room-title{font-family:'Fredoka One',cursive;font-size:1.4rem;color:#fff;margin-bottom:4px}
+.room-desc{color:var(--muted);font-size:0.9rem;max-width:400px;line-height:1.5;margin-bottom:20px;text-align:center}
+
+/* Doors */
+.doors{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.door-btn{
+  background:var(--card);border:2px solid var(--border);border-radius:14px;
+  padding:14px 20px;cursor:pointer;transition:all 0.3s;
+  display:flex;flex-direction:column;align-items:center;gap:4px;min-width:100px;
+  font-family:'Nunito',sans-serif;color:var(--text);
 }
-#gameContainer { 
-  width: 100%; 
-  max-width: 1000px; 
-  margin: 0 auto; 
-  background: linear-gradient(180deg, #1a1f3a 0%, #16213e 100%); 
-  padding: 20px; 
-  border-radius: 12px;
-  color: #fff;
+.door-btn:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.4)}
+.door-btn .door-icon{font-size:1.8rem}
+.door-btn .door-label{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+.door-btn.boss-door{border-color:rgba(255,71,87,0.4)}
+.door-btn.boss-door:hover{border-color:var(--red);box-shadow:0 6px 20px rgba(255,71,87,0.2)}
+.door-btn.exit-door{border-color:rgba(46,213,115,0.4)}
+.door-btn.exit-door:hover{border-color:var(--green);box-shadow:0 6px 20px rgba(46,213,115,0.2)}
+.door-btn.locked{opacity:0.4;cursor:not-allowed;pointer-events:none}
+
+/* Question overlay */
+.question-overlay{
+  position:absolute;inset:0;background:rgba(10,10,26,0.92);backdrop-filter:blur(6px);
+  border-radius:20px;display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px;z-index:10;animation:fadeIn 0.3s ease;
 }
-h1 {
-  color: #4ecdc4;
-  text-align: center;
-  margin-bottom: 10px;
+.question-overlay.active{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+.enemy-display{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.enemy-icon{font-size:3rem;animation:enemyBounce 1s ease-in-out infinite}
+@keyframes enemyBounce{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
+.enemy-info .enemy-name{font-weight:800;font-size:1rem;color:var(--red)}
+.enemy-info .enemy-hp-bar{width:120px;height:6px;background:var(--card);border-radius:6px;margin-top:4px;overflow:hidden}
+.enemy-info .enemy-hp-fill{height:100%;background:var(--red);border-radius:6px;transition:width 0.3s}
+
+.q-category{font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:8px}
+.q-text{font-size:1.15rem;font-weight:700;color:#fff;line-height:1.5;margin-bottom:20px;text-align:center;max-width:480px}
+.q-options{display:flex;flex-direction:column;gap:8px;width:100%;max-width:440px}
+.q-opt{
+  background:rgba(255,255,255,0.04);border:2px solid rgba(255,255,255,0.1);
+  border-radius:12px;padding:12px 16px;cursor:pointer;transition:all 0.2s;
+  display:flex;align-items:center;gap:10px;font-family:'Nunito',sans-serif;
+  font-size:0.95rem;font-weight:700;color:var(--text);text-align:left;
 }
-#gameWorld {
-  width: 100%;
-  height: 400px;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232d5016" width="100" height="100"/><circle cx="20" cy="20" r="8" fill="%23468c20"/><circle cx="80" cy="30" r="6" fill="%23468c20"/><circle cx="60" cy="70" r="7" fill="%23468c20"/><rect x="40" y="50" width="20" height="30" fill="%238b7355"/></svg>');
-  border: 2px solid #0a9e67;
-  position: relative;
-  margin-bottom: 20px;
-  overflow: hidden;
+.q-opt:hover:not(.disabled){background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);transform:translateX(3px)}
+.q-opt .key{min-width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800}
+.q-opt.correct{background:rgba(46,213,115,0.15);border-color:var(--green)}
+.q-opt.correct .key{background:var(--green);color:#000}
+.q-opt.wrong{background:rgba(255,71,87,0.15);border-color:var(--red)}
+.q-opt.wrong .key{background:var(--red);color:#fff}
+.q-opt.disabled{pointer-events:none;opacity:0.5}
+.q-opt.disabled.correct{opacity:1}
+
+.q-timer{display:flex;align-items:center;gap:6px;margin-bottom:12px;font-weight:800;font-size:0.9rem}
+.q-timer.danger{color:var(--red)}
+.q-timer-bar{width:200px;height:5px;background:var(--card);border-radius:6px;overflow:hidden}
+.q-timer-fill{height:100%;background:var(--gold);border-radius:6px;transition:width 0.1s linear}
+.q-timer-fill.danger{background:var(--red)}
+
+.q-feedback{margin-top:14px;padding:12px 16px;border-radius:10px;font-size:0.85rem;line-height:1.5;max-width:440px;text-align:center;animation:fadeIn 0.3s}
+.q-feedback.correct-fb{background:rgba(46,213,115,0.1);border:1px solid rgba(46,213,115,0.3);color:var(--green)}
+.q-feedback.wrong-fb{background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);color:var(--red)}
+
+/* Loot popup */
+.loot-popup{
+  position:absolute;inset:0;background:rgba(10,10,26,0.9);backdrop-filter:blur(6px);
+  border-radius:20px;display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px;z-index:10;animation:fadeIn 0.3s;
 }
-.player {
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  background: #ff6b6b;
-  border: 2px solid #fff;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
+.loot-popup.active{display:flex}
+.loot-title{font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--gold);margin-bottom:16px}
+.loot-items{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+.loot-item{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:14px 18px;text-align:center;animation:popIn 0.4s cubic-bezier(0.68,-0.55,0.27,1.55)}
+@keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
+.loot-item .loot-icon{font-size:2rem;margin-bottom:4px}
+.loot-item .loot-name{font-size:0.8rem;font-weight:700;color:#fff}
+.loot-item .loot-desc{font-size:0.7rem;color:var(--muted)}
+
+.btn{background:linear-gradient(135deg,#f7971e,#ffd200);color:#0a0a1a;border:none;border-radius:12px;padding:12px 28px;font-family:'Nunito',sans-serif;font-size:0.95rem;font-weight:800;cursor:pointer;transition:all 0.3s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,210,0,0.3)}
+.btn.sm{padding:8px 18px;font-size:0.8rem;border-radius:8px}
+.btn.red{background:linear-gradient(135deg,#ff4757,#ff6b81)}
+.btn.green{background:linear-gradient(135deg,#2ed573,#7bed9f)}
+.btn.secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn.secondary:hover{border-color:var(--gold);box-shadow:none}
+
+/* Event log */
+.log-bar{grid-column:2;max-height:90px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;padding:4px 0}
+.log-bar::-webkit-scrollbar{width:4px}
+.log-bar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.log-entry{font-size:0.75rem;color:var(--muted);font-weight:600;padding:2px 0}
+.log-entry .time{color:var(--border);margin-right:6px;font-family:'JetBrains Mono',monospace;font-size:0.65rem}
+.log-entry.gold-log{color:var(--gold)}
+.log-entry.red-log{color:var(--red)}
+.log-entry.green-log{color:var(--green)}
+.log-entry.purple-log{color:var(--purple)}
+.log-entry.blue-log{color:var(--blue)}
+
+/* Level up overlay */
+.level-up-overlay{
+  position:fixed;inset:0;background:rgba(10,10,26,0.85);z-index:100;
+  display:none;align-items:center;justify-content:center;animation:fadeIn 0.3s;
 }
-.npc {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  background: #4ecdc4;
-  border: 2px solid #fff;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
+.level-up-overlay.active{display:flex}
+.level-up-box{background:var(--panel);border:2px solid var(--gold);border-radius:20px;padding:36px;text-align:center;animation:popIn 0.5s cubic-bezier(0.68,-0.55,0.27,1.55);max-width:360px}
+.level-up-box .lu-icon{font-size:3rem;margin-bottom:8px}
+.level-up-box .lu-title{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--gold);margin-bottom:4px}
+.level-up-box .lu-sub{color:var(--muted);font-size:0.9rem;margin-bottom:16px}
+.lu-stats{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.lu-stat{display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700}
+.lu-stat .up{color:var(--green)}
+
+/* Tooltip */
+.tooltip{position:fixed;background:#1e1e3a;border:1px solid var(--border);border-radius:10px;padding:10px 14px;z-index:200;pointer-events:none;max-width:200px;box-shadow:0 8px 30px rgba(0,0,0,0.5);font-size:0.8rem;display:none}
+.tooltip .tt-name{font-weight:800;color:#fff;margin-bottom:2px}
+.tooltip .tt-desc{color:var(--muted);font-size:0.75rem;line-height:1.4}
+.tooltip .tt-action{color:var(--gold);font-size:0.7rem;margin-top:4px;font-weight:700}
+
+/* Start screen */
+.start-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;animation:fadeIn 0.5s}
+.start-screen.hidden{display:none}
+.start-screen h1{font-size:3rem;background:linear-gradient(135deg,#f7971e,#ffd200);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px;filter:drop-shadow(0 2px 8px rgba(255,210,0,0.3))}
+.start-screen .tagline{color:var(--muted);font-size:1rem;margin-bottom:32px;font-weight:600}
+
+.class-select{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:600px;width:100%;margin-bottom:24px}
+.class-card{
+  background:var(--panel);border:2px solid var(--border);border-radius:16px;
+  padding:20px 14px;text-align:center;cursor:pointer;transition:all 0.3s;
 }
-.merchant {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  background: #ffa500;
-  border: 2px solid #fff;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
+.class-card:hover,.class-card.selected{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 6px 25px rgba(0,0,0,0.4)}
+.class-card.selected{background:rgba(255,210,0,0.05)}
+.class-card .cc-icon{font-size:2.4rem;margin-bottom:8px}
+.class-card .cc-name{font-weight:800;font-size:1rem;color:#fff;margin-bottom:4px}
+.class-card .cc-desc{font-size:0.75rem;color:var(--muted);line-height:1.4}
+.class-card .cc-bonus{font-size:0.7rem;color:var(--gold);font-weight:700;margin-top:6px}
+
+.name-input{background:var(--panel);border:2px solid var(--border);border-radius:12px;padding:12px 18px;color:#fff;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:700;width:280px;text-align:center;margin-bottom:20px;outline:none;transition:border-color 0.3s}
+.name-input:focus{border-color:var(--gold)}
+.name-input::placeholder{color:var(--muted)}
+
+/* Death screen */
+.death-screen{position:fixed;inset:0;background:rgba(10,10,26,0.95);z-index:200;display:none;align-items:center;justify-content:center;animation:fadeIn 0.5s}
+.death-screen.active{display:flex}
+.death-box{text-align:center;animation:popIn 0.5s cubic-bezier(0.68,-0.55,0.27,1.55)}
+.death-box .skull{font-size:5rem;margin-bottom:12px}
+.death-box h2{font-family:'Fredoka One',cursive;font-size:2rem;color:var(--red);margin-bottom:8px}
+.death-box p{color:var(--muted);margin-bottom:24px;max-width:300px}
+.death-box .death-stats{display:flex;gap:12px;justify-content:center;margin-bottom:24px}
+
+/* Shop overlay */
+.shop-overlay{
+  position:absolute;inset:0;background:rgba(10,10,26,0.92);backdrop-filter:blur(6px);
+  border-radius:20px;display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;z-index:10;animation:fadeIn 0.3s;
 }
-.enemy {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  background: #ff4757;
-  border: 2px solid #fff;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
+.shop-overlay.active{display:flex}
+.shop-items{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+.shop-item{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center;min-width:120px;cursor:pointer;transition:all 0.3s}
+.shop-item:hover{border-color:var(--gold);transform:translateY(-2px)}
+.shop-item.cant-afford{opacity:0.4;pointer-events:none}
+.shop-item .si-icon{font-size:1.8rem}
+.shop-item .si-name{font-size:0.8rem;font-weight:700;color:#fff;margin:4px 0 2px}
+.shop-item .si-desc{font-size:0.68rem;color:var(--muted)}
+.shop-item .si-price{font-size:0.75rem;font-weight:800;color:var(--gold);margin-top:4px}
+
+/* Rest site */
+.rest-choices{display:flex;gap:12px;margin-top:16px}
+
+/* Responsive */
+@media(max-width:768px){
+  .game-container.active{grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto}
+  .sidebar{grid-row:auto;flex-direction:row;overflow-x:auto;gap:8px}
+  .sidebar .panel{min-width:200px;flex-shrink:0}
+  .class-select{grid-template-columns:1fr}
 }
-.loot {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background: #ffd700;
-  border: 1px solid #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-}
-#ui {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-.panel {
-  background: #0f2d1d;
-  padding: 15px;
-  border: 1px solid #0a9e67;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 13px;
-}
-.panel h3 { margin: 0 0 10px 0; color: #4ecdc4; font-size: 14px; }
-.stat-line { display: flex; justify-content: space-between; margin: 5px 0; }
-.stat-label { color: #aaa; }
-#inventory {
-  max-height: 150px;
-  overflow-y: auto;
-}
-.item {
-  background: #1a3d2a;
-  padding: 8px;
-  margin: 5px 0;
-  border-radius: 4px;
-  border-left: 3px solid #ffd700;
-  font-size: 12px;
-}
-#shopPanel {
-  display: none;
-  background: #1a2d1f;
-  padding: 20px;
-  border: 2px solid #ffa500;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-#shopPanel h2 { color: #ffa500; margin-top: 0; }
-.shop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
-}
-.shop-item {
-  background: #0f2d1d;
-  padding: 15px;
-  border: 1px solid #0a9e67;
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.shop-item:hover {
-  border-color: #ffa500;
-  background: #152d22;
-}
-.shop-item-icon {
-  font-size: 32px;
-  margin: 10px 0;
-}
-.shop-item-name {
-  color: #4ecdc4;
-  font-weight: bold;
-  margin: 5px 0;
-}
-.shop-item-desc {
-  font-size: 12px;
-  color: #aaa;
-  margin: 5px 0;
-}
-.shop-item-price {
-  color: #ffd700;
-  font-weight: bold;
-  margin-top: 10px;
-}
-#combatPanel {
-  background: #2d1f1f;
-  padding: 15px;
-  border: 1px solid #ff4757;
-  border-radius: 8px;
-  color: #fff;
-  display: none;
-  margin-bottom: 20px;
-}
-#combatPanel h3 { margin: 0 0 10px 0; color: #ff6b6b; }
-.combat-action {
-  background: #4a2a2a;
-  padding: 8px 12px;
-  margin: 5px 0;
-  border: 1px solid #ff4757;
-  border-radius: 4px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-}
-.combat-action:hover {
-  background: #ff4757;
-  color: #fff;
-}
-#controls {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-button {
-  padding: 10px 16px;
-  background: #0a9e67;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-button:hover {
-  background: #088e57;
-}
-button.danger {
-  background: #ff4757;
-}
-button.danger:hover {
-  background: #ff3838;
-}
-button.shop-btn {
-  background: #ffa500;
-}
-button.shop-btn:hover {
-  background: #ff8c00;
-}
-#log {
-  background: #0f2d1d;
-  padding: 15px;
-  border: 1px solid #0a9e67;
-  border-radius: 8px;
-  color: #4ecdc4;
-  font-size: 12px;
-  max-height: 120px;
-  overflow-y: auto;
-  font-family: monospace;
-}
-#log p { margin: 5px 0; }
 </style>
 </head>
 <body>
-<div id="gameContainer">
-  <h1>⚔️ Advanced 2D Fantasy RPG</h1>
-  <div id="gameWorld"></div>
-  
-  <div id="ui">
-    <div class="panel" id="stats">
-      <h3>Character Stats</h3>
-      <div class="stat-line"><span class="stat-label">Level:</span><span id="level">1</span></div>
-      <div class="stat-line"><span class="stat-label">HP:</span><span id="hp">100 / 100</span></div>
-      <div class="stat-line"><span class="stat-label">Exp:</span><span id="exp">0 / 100</span></div>
-      <div class="stat-line"><span class="stat-label">Attack:</span><span id="attack">10</span></div>
-      <div class="stat-line"><span class="stat-label">Defense:</span><span id="defense">5</span></div>
+
+<!-- START SCREEN -->
+<div class="start-screen" id="start-screen">
+  <h1>Knowledge Rush</h1>
+  <p class="tagline">A Dungeon RPG powered by your brain</p>
+  <input class="name-input" id="name-input" placeholder="Enter your name..." maxlength="16" autofocus>
+  <div class="class-select" id="class-select"></div>
+  <button class="btn" id="start-btn" onclick="startGame()">Enter the Dungeon</button>
+</div>
+
+<!-- GAME -->
+<div class="game-container" id="game">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="panel char-panel">
+      <div class="char-header">
+        <div class="char-avatar" id="char-avatar"></div>
+        <div>
+          <div class="char-name" id="char-name">Hero</div>
+          <div class="char-class" id="char-class">Warrior</div>
+          <div class="char-level" id="char-level">Level 1</div>
+        </div>
+      </div>
+      <div class="stat-bars">
+        <div class="stat-bar-row"><span class="label">HP</span><div class="bar-track"><div class="bar-fill hp" id="hp-bar"></div></div><span class="values" id="hp-text">100/100</span></div>
+        <div class="stat-bar-row"><span class="label">XP</span><div class="bar-track"><div class="bar-fill xp" id="xp-bar"></div></div><span class="values" id="xp-text">0/100</span></div>
+        <div class="stat-bar-row"><span class="label" style="font-size:0.6rem">SHD</span><div class="bar-track"><div class="bar-fill shield" id="shield-bar"></div></div><span class="values" id="shield-text">0</span></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-cell"><div class="val" id="stat-atk">10</div><div class="lbl">Attack</div></div>
+        <div class="stat-cell"><div class="val" id="stat-def">5</div><div class="lbl">Defense</div></div>
+        <div class="stat-cell"><div class="val" id="stat-wis">5</div><div class="lbl">Wisdom</div></div>
+        <div class="stat-cell"><div class="val" id="stat-lck">5</div><div class="lbl">Luck</div></div>
+      </div>
     </div>
-    
-    <div class="panel" id="resources">
-      <h3>Resources</h3>
-      <div class="stat-line"><span class="stat-label">Gold:</span><span id="gold">0</span></div>
-      <div class="stat-line"><span class="stat-label">Kills:</span><span id="kills">0</span></div>
-      <div class="stat-line"><span class="stat-label">Potions:</span><span id="potionCount">0</span></div>
+    <div class="panel inv-panel">
+      <div class="inv-title">Inventory</div>
+      <div class="inv-grid" id="inv-grid"></div>
     </div>
-    
-    <div class="panel" id="inventory">
-      <h3>Inventory</h3>
-      <div id="itemsList"></div>
+    <div class="panel minimap-panel">
+      <div class="map-title">Map - <span id="map-floor-label">Floor 1</span></div>
+      <div class="minimap" id="minimap"></div>
     </div>
   </div>
-  
-  <div id="shopPanel">
-    <h2>🧙 Wandering Merchant</h2>
-    <p style="color: #aaa;">Spend your gold on useful items</p>
-    <div class="shop-grid" id="shopGrid"></div>
-    <button onclick="closeShop()" class="danger">Close Shop</button>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="floor-badge"><span class="emoji" id="zone-icon">&#x1F3F0;</span><span class="zone-name" id="zone-name">Castle Entrance</span></div>
+    <div class="gold-badge">&#x1FA99; <span id="gold-display">0</span></div>
   </div>
-  
-  <div id="combatPanel"></div>
-  
-  <div id="log">
-    <p>Game started! Move with arrow keys or WASD.</p>
-    <p>Talk to NPCs, find merchants, or fight enemies!</p>
+
+  <!-- Main -->
+  <div class="main-area">
+    <div class="room-view" id="room-view">
+      <div class="room-scene" id="room-scene">
+        <div class="room-icon" id="room-icon"></div>
+        <div class="room-title" id="room-title"></div>
+        <div class="room-desc" id="room-desc"></div>
+        <div class="doors" id="doors"></div>
+      </div>
+      <div class="question-overlay" id="question-overlay">
+        <div class="enemy-display" id="enemy-display" style="display:none">
+          <div class="enemy-icon" id="enemy-icon"></div>
+          <div class="enemy-info"><div class="enemy-name" id="enemy-name"></div><div class="enemy-hp-bar"><div class="enemy-hp-fill" id="enemy-hp-fill"></div></div></div>
+        </div>
+        <div class="q-timer" id="q-timer"><span id="q-timer-icon">&#x23F1;</span> <span id="q-timer-text">15s</span><div class="q-timer-bar"><div class="q-timer-fill" id="q-timer-fill"></div></div></div>
+        <div class="q-category" id="q-category"></div>
+        <div class="q-text" id="q-text"></div>
+        <div class="q-options" id="q-options"></div>
+        <div class="q-feedback" id="q-feedback" style="display:none"></div>
+      </div>
+      <div class="loot-popup" id="loot-popup">
+        <div class="loot-title" id="loot-title">Loot Found!</div>
+        <div class="loot-items" id="loot-items"></div>
+        <button class="btn sm" onclick="closeLoot()">Continue</button>
+      </div>
+      <div class="shop-overlay" id="shop-overlay">
+        <div style="font-size:2.5rem;margin-bottom:4px">&#x1F9D9;</div>
+        <div class="room-title">Wandering Merchant</div>
+        <div class="room-desc" style="margin-bottom:0">Spend your gold on useful items</div>
+        <div class="shop-items" id="shop-items"></div>
+        <button class="btn secondary sm" onclick="closeShop()">Leave Shop</button>
+      </div>
+    </div>
   </div>
-  
-  <div id="controls">
-    <button class="shop-btn" onclick="toggleShop()">Open Shop</button>
-    <button onclick="spawnEnemy()">Spawn Enemy</button>
-    <button class="danger" onclick="resetGame()">New Game</button>
+
+  <!-- Log -->
+  <div class="log-bar" id="log-bar"></div>
+</div>
+
+<!-- Level up overlay -->
+<div class="level-up-overlay" id="level-up-overlay">
+  <div class="level-up-box">
+    <div class="lu-icon">&#x2B50;</div>
+    <div class="lu-title" id="lu-title">Level Up!</div>
+    <div class="lu-sub" id="lu-sub">You reached level 2</div>
+    <div class="lu-stats" id="lu-stats"></div>
+    <button class="btn" onclick="closeLevelUp()">Continue</button>
   </div>
 </div>
 
+<!-- Death screen -->
+<div class="death-screen" id="death-screen">
+  <div class="death-box">
+    <div class="skull">&#x1F480;</div>
+    <h2>You Have Fallen</h2>
+    <p id="death-msg">The dungeon claims another adventurer...</p>
+    <div class="death-stats">
+      <div class="stat-box"><div class="val" id="death-floor">1</div><div class="lbl">Floor</div></div>
+      <div class="stat-box"><div class="val" id="death-rooms">0</div><div class="lbl">Rooms</div></div>
+      <div class="stat-box"><div class="val" id="death-kills">0</div><div class="lbl">Defeated</div></div>
+    </div>
+    <button class="btn" onclick="restartGame()">Try Again</button>
+  </div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tt-name" id="tt-name"></div>
+  <div class="tt-desc" id="tt-desc"></div>
+  <div class="tt-action" id="tt-action"></div>
+</div>
+
 <script>
-const shopItems = [
-  { id: 'health', name: 'Health Potion', icon: '🌿', desc: 'Restores 30 HP', price: 15, type: 'potion', effect: 30 },
-  { id: 'grand', name: 'Grand Potion', icon: '❤️', desc: 'Restores 60 HP', price: 30, type: 'potion', effect: 60 },
-  { id: 'shield', name: 'Shield Scroll', icon: '🛡️', desc: 'Blocks next 20 damage', price: 20, type: 'scroll', effect: 20 },
-  { id: 'time', name: 'Time Crystal', icon: '💎', desc: '+5 on next question', price: 25, type: 'crystal', effect: 5 },
-  { id: 'xp', name: 'XP Tome', icon: '📖', desc: 'Grants 50 XP', price: 35, type: 'tome', effect: 50 }
+// ==================== DATA ====================
+
+const CLASSES = [
+  { id:'warrior', icon:'\u{1F9D1}\u200D\u{1F527}', name:'Warrior', desc:'High HP and defense. Takes less damage from wrong answers.', bonus:'+20 HP, +3 DEF', hp:120, atk:12, def:8, wis:4, lck:4 },
+  { id:'scholar', icon:'\u{1F9D9}', name:'Scholar', desc:'Extra time on questions and bonus XP from correct answers.', bonus:'+3s Timer, +25% XP', hp:90, atk:8, def:4, wis:10, lck:6 },
+  { id:'rogue', icon:'\u{1F977}', name:'Rogue', desc:'Better loot and gold. Higher chance to dodge wrong answers.', bonus:'+50% Gold, +5 LCK', hp:95, atk:10, def:5, wis:5, lck:10 },
 ];
 
-const gameState = {
-  player: { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0, kills: 0 },
-  enemies: [],
-  npcs: [],
-  loot: [],
-  inventory: [],
-  potions: 0,
-  inCombat: false,
-  currentEnemy: null,
-  log: [],
-  shopOpen: false
+const ZONES = [
+  { name:'Castle Entrance', icon:'\u{1F3F0}', color:'#5b8cff' },
+  { name:'Mystic Library', icon:'\u{1F4DA}', color:'#a855f7' },
+  { name:'Crystal Caverns', icon:'\u{1F48E}', color:'#2ed573' },
+  { name:'Dragon\'s Lair', icon:'\u{1F525}', color:'#ff4757' },
+  { name:'Celestial Tower', icon:'\u{1F31F}', color:'#ffd200' },
+  { name:'Shadow Realm', icon:'\u{1F30C}', color:'#8b5cf6' },
+  { name:'Abyssal Depths', icon:'\u{1F30A}', color:'#0ea5e9' },
+];
+
+const ROOM_TYPES = {
+  empty: { icons:['\u{1F6AA}','\u{1F573}','\u{1FAA8}'], titles:['Empty Chamber','Dusty Room','Quiet Passage','Stone Hall'], descs:['The room is silent. Doors lead onward.','Cobwebs line the walls. Choose a path.','Faint echoes bounce off the stone walls.','Ancient carvings cover the walls.'] },
+  monster: { icons:['\u{1F47E}','\u{1F409}','\u{1F577}','\u{1F987}','\u{1F480}','\u{1F47B}'], titles:['Monster Encounter!','Creature Ahead!','Enemy Spotted!'], descs:['A creature blocks your path! Answer its riddle to defeat it.','Something lurks in the shadows... prepare yourself!','An enemy challenges you!'] },
+  chest: { icons:['\u{1F4E6}','\u{1F381}'], titles:['Treasure Room','Hidden Cache'], descs:['A glowing chest sits in the center of the room!','You found a hidden stash of treasure!'] },
+  shop: { icons:['\u{1F9D9}'], titles:['Merchant\'s Alcove'], descs:['A mysterious merchant offers wares for gold.'] },
+  rest: { icons:['\u{26FA}','\u{1F525}'], titles:['Rest Site','Campfire'], descs:['A safe place to rest and recover.'] },
+  boss: { icons:['\u{1F432}','\u{1F479}','\u{1F47A}'], titles:['Boss Chamber!'], descs:['A powerful guardian blocks the way to the next floor!'] },
+  exit: { icons:['\u{1FA9C}'], titles:['Stairway Down'], descs:['Stairs lead to the next floor. Defeat the boss to unlock them.'] },
 };
 
-function logMessage(msg) {
-  gameState.log.unshift(msg);
-  if (gameState.log.length > 5) gameState.log.pop();
-  updateLog();
+const ENEMIES = [
+  { name:'Goblin Quiz-Master', icon:'\u{1F47E}', hp:1, dmg:10 },
+  { name:'Riddle Wraith', icon:'\u{1F47B}', hp:1, dmg:12 },
+  { name:'Puzzle Spider', icon:'\u{1F577}', hp:2, dmg:8 },
+  { name:'Trivia Bat', icon:'\u{1F987}', hp:1, dmg:10 },
+  { name:'Knowledge Imp', icon:'\u{1F608}', hp:2, dmg:10 },
+  { name:'Brain Golem', icon:'\u{1F916}', hp:3, dmg:12 },
+];
+
+const BOSSES = [
+  { name:'The Sphinx', icon:'\u{1F981}', hp:4, dmg:20 },
+  { name:'Lich of Lore', icon:'\u{1F480}', hp:5, dmg:25 },
+  { name:'Puzzle Dragon', icon:'\u{1F432}', hp:5, dmg:28 },
+  { name:'Oracle of Doom', icon:'\u{1F52E}', hp:6, dmg:30 },
+  { name:'Chaos Titan', icon:'\u{1F47A}', hp:7, dmg:35 },
+];
+
+const ITEMS = {
+  hp_potion: { icon:'\u{1FAB4}', name:'Health Potion', desc:'Restores 30 HP', type:'consumable', use(g){ g.player.hp = Math.min(g.player.maxHp, g.player.hp+30); return 'Restored 30 HP!'; }},
+  big_hp_potion: { icon:'\u2764\uFE0F', name:'Grand Potion', desc:'Restores 60 HP', type:'consumable', use(g){ g.player.hp = Math.min(g.player.maxHp, g.player.hp+60); return 'Restored 60 HP!'; }},
+  shield_scroll: { icon:'\u{1F6E1}', name:'Shield Scroll', desc:'Blocks next 20 damage', type:'consumable', use(g){ g.player.shield += 20; return 'Gained 20 shield!'; }},
+  xp_tome: { icon:'\u{1F4D6}', name:'XP Tome', desc:'Grants 50 XP', type:'consumable', use(g){ addXP(50); return 'Gained 50 XP!'; }},
+  time_crystal: { icon:'\u{1F48E}', name:'Time Crystal', desc:'+5s on next question', type:'consumable', use(g){ g.player.bonusTime += 5; return '+5s on next question!'; }},
+  lucky_coin: { icon:'\u{1FA99}', name:'Lucky Coin', desc:'+3 Luck for this floor', type:'consumable', use(g){ g.player.lck += 3; return '+3 Luck gained!'; }},
+  atk_gem: { icon:'\u2694\uFE0F', name:'Attack Gem', desc:'+2 Attack permanently', type:'permanent', use(g){ g.player.atk += 2; return '+2 Attack!'; }},
+  def_gem: { icon:'\u{1F6E1}', name:'Defense Gem', desc:'+2 Defense permanently', type:'permanent', use(g){ g.player.def += 2; return '+2 Defense!'; }},
+  wis_gem: { icon:'\u{1F4D6}', name:'Wisdom Gem', desc:'+2 Wisdom permanently', type:'permanent', use(g){ g.player.wis += 2; return '+2 Wisdom!'; }},
+};
+
+const SHOP_ITEMS = [
+  { item:'hp_potion', cost:15 },
+  { item:'big_hp_potion', cost:30 },
+  { item:'shield_scroll', cost:20 },
+  { item:'time_crystal', cost:25 },
+  { item:'xp_tome', cost:35 },
+];
+
+// 200+ questions across categories with difficulty tiers
+const QUESTIONS = {
+  science: {
+    easy: [
+      {q:"What gas do plants absorb?",o:["CO\u2082","Oxygen","Nitrogen","Helium"],a:0,f:"Plants use CO\u2082 for photosynthesis!"},
+      {q:"What planet is closest to the Sun?",o:["Venus","Mercury","Mars","Earth"],a:1,f:"Mercury orbits the Sun in just 88 days."},
+      {q:"What is H\u2082O commonly known as?",o:["Salt","Water","Acid","Alcohol"],a:1,f:"Every water molecule has 2 hydrogen and 1 oxygen atom."},
+      {q:"How many legs does a spider have?",o:["6","8","10","12"],a:1,f:"Spiders are arachnids, not insects!"},
+      {q:"What organ pumps blood through your body?",o:["Brain","Liver","Heart","Lungs"],a:2,f:"Your heart beats about 100,000 times per day!"},
+      {q:"What force keeps us on the ground?",o:["Magnetism","Gravity","Friction","Wind"],a:1,f:"Gravity is the weakest of the 4 fundamental forces."},
+      {q:"Which planet is known as the Red Planet?",o:["Jupiter","Mars","Venus","Saturn"],a:1,f:"Mars is red due to iron oxide (rust) on its surface."},
+      {q:"What is the largest organ of the human body?",o:["Liver","Brain","Skin","Heart"],a:2,f:"Skin covers about 20 square feet on an adult!"},
+      {q:"What do bees produce?",o:["Silk","Honey","Wax only","Milk"],a:1,f:"A single bee produces about 1/12 teaspoon of honey in its lifetime."},
+      {q:"What is the boiling point of water in Celsius?",o:["90\u00b0","100\u00b0","110\u00b0","120\u00b0"],a:1,f:"At sea level, water boils at exactly 100\u00b0C (212\u00b0F)."},
+    ],
+    medium: [
+      {q:"What is the powerhouse of the cell?",o:["Nucleus","Mitochondria","Ribosome","Golgi"],a:1,f:"Mitochondria generate most of a cell's ATP energy."},
+      {q:"What is the chemical symbol for gold?",o:["Go","Gd","Au","Ag"],a:2,f:"Au comes from the Latin word 'aurum' meaning gold."},
+      {q:"What type of rock is formed by cooling magma?",o:["Sedimentary","Metamorphic","Igneous","Limestone"],a:2,f:"Granite and basalt are common igneous rocks."},
+      {q:"What is the speed of light approximately?",o:["300,000 km/s","150,000 km/s","500,000 km/s","1M km/s"],a:0,f:"Light travels around Earth 7.5 times per second!"},
+      {q:"Which planet has the most moons?",o:["Jupiter","Saturn","Uranus","Neptune"],a:1,f:"Saturn has over 140 confirmed moons!"},
+      {q:"What element makes up most of Earth's atmosphere?",o:["Oxygen","Carbon","Nitrogen","Hydrogen"],a:2,f:"Nitrogen makes up about 78% of our atmosphere."},
+      {q:"What particle has a positive charge?",o:["Electron","Neutron","Proton","Photon"],a:2,f:"Protons are found in the nucleus of every atom."},
+      {q:"What is the smallest bone in the human body?",o:["Stapes","Femur","Patella","Radius"],a:0,f:"The stapes (stirrup) is in your middle ear!"},
+      {q:"What phenomenon causes a rainbow?",o:["Reflection","Refraction","Diffusion","Absorption"],a:1,f:"Rainbows form when light refracts through water droplets."},
+      {q:"How many chromosomes do humans have?",o:["23","44","46","48"],a:2,f:"23 pairs = 46 total chromosomes per cell."},
+    ],
+    hard: [
+      {q:"What is the half-life of Carbon-14?",o:["5,730 years","1,200 years","10,000 years","50,000 years"],a:0,f:"C-14 dating is used to date organic materials up to ~50,000 years old."},
+      {q:"What is the Schwarzschild radius related to?",o:["Atoms","Black holes","Stars","Planets"],a:1,f:"It defines the event horizon of a non-rotating black hole."},
+      {q:"What is the most abundant element in the universe?",o:["Helium","Oxygen","Carbon","Hydrogen"],a:3,f:"Hydrogen makes up about 75% of all normal matter."},
+      {q:"Which organelle is responsible for protein synthesis?",o:["Lysosome","Ribosome","Vacuole","Centriole"],a:1,f:"Ribosomes read mRNA to assemble amino acids into proteins."},
+      {q:"What phenomenon explains why the sky is blue?",o:["Reflection","Rayleigh scattering","Absorption","Diffraction"],a:1,f:"Short blue wavelengths scatter more than other colors."},
+      {q:"What is the heaviest naturally occurring element?",o:["Lead","Plutonium","Uranium","Osmium"],a:2,f:"Uranium (atomic number 92) is the heaviest natural element."},
+      {q:"What is the Heisenberg Uncertainty Principle about?",o:["Energy","Position & momentum","Time","Gravity"],a:1,f:"You can't precisely know both position and momentum simultaneously."},
+    ]
+  },
+  math: {
+    easy: [
+      {q:"What is 7 \u00d7 8?",o:["54","56","58","64"],a:1,f:"Fun: 5-6-7-8 are consecutive digits!"},
+      {q:"What is the square root of 64?",o:["6","7","8","9"],a:2,f:"8\u00b2 = 64. Perfect squares are useful to memorize!"},
+      {q:"How many sides does a hexagon have?",o:["5","6","7","8"],a:1,f:"Hex = 6. Honeycombs use hexagons for efficiency!"},
+      {q:"What is 15% of 200?",o:["20","25","30","35"],a:2,f:"10% is 20, plus 5% (10) = 30!"},
+      {q:"What is the value of Pi rounded to 2 decimals?",o:["3.14","3.16","3.12","3.41"],a:0,f:"Pi has been calculated to over 100 trillion digits!"},
+      {q:"What is 12 \u00d7 12?",o:["124","132","144","156"],a:2,f:"144 is also a Fibonacci number!"},
+      {q:"How many degrees in a right angle?",o:["45","60","90","180"],a:2,f:"A corner of a piece of paper is a right angle."},
+      {q:"What is 1000 \u00f7 8?",o:["120","125","130","135"],a:1,f:"125 = 5\u00b3 \u2014 cubes pop up everywhere!"},
+      {q:"What shape has 3 sides?",o:["Square","Triangle","Pentagon","Circle"],a:1,f:"Tri = 3. Triangles are the strongest shape in engineering."},
+      {q:"What is 25% of 80?",o:["15","20","25","30"],a:1,f:"25% = \u00bc, so just divide by 4!"},
+    ],
+    medium: [
+      {q:"What is 2\u00b9\u2070 (2 to the power of 10)?",o:["512","1024","2048","4096"],a:1,f:"That's why a kilobyte is 1024 bytes!"},
+      {q:"What is the next prime after 7?",o:["9","10","11","13"],a:2,f:"11 is a palindromic prime number."},
+      {q:"What is the sum of angles in a triangle?",o:["90\u00b0","180\u00b0","270\u00b0","360\u00b0"],a:1,f:"This works for ALL flat triangles."},
+      {q:"What is the factorial of 5 (5!)?",o:["60","100","120","150"],a:2,f:"5! = 5\u00d74\u00d73\u00d72\u00d71 = 120"},
+      {q:"What is the least common multiple of 4 and 6?",o:["8","10","12","24"],a:2,f:"LCM is the smallest number both divide evenly."},
+      {q:"In a right triangle, what is a\u00b2 + b\u00b2 equal to?",o:["c","c\u00b2","ab","2c"],a:1,f:"The Pythagorean theorem is over 2,500 years old!"},
+      {q:"What is the 7th Fibonacci number?",o:["8","13","21","34"],a:1,f:"Fibonacci: 1,1,2,3,5,8,13... each is the sum of the prior two."},
+      {q:"How many faces does a cube have?",o:["4","6","8","12"],a:1,f:"A cube also has 8 vertices and 12 edges."},
+      {q:"What is log\u2081\u2080(1000)?",o:["2","3","4","10"],a:1,f:"10\u00b3 = 1000, so the log base 10 is 3."},
+      {q:"What is the GCD of 48 and 36?",o:["6","8","12","18"],a:2,f:"GCD = Greatest Common Divisor. Both divide evenly by 12."},
+    ],
+    hard: [
+      {q:"What is the derivative of x\u00b3?",o:["x\u00b2","2x\u00b2","3x\u00b2","3x"],a:2,f:"Power rule: bring down the exponent and subtract 1."},
+      {q:"What is the integral of 2x?",o:["x\u00b2","x\u00b2+C","2x\u00b2","2x\u00b2+C"],a:1,f:"Don't forget the constant of integration!"},
+      {q:"What is e (Euler's number) approximately?",o:["2.718","3.141","1.618","2.236"],a:0,f:"e is the base of natural logarithms and appears everywhere."},
+      {q:"How many edges does an icosahedron have?",o:["12","20","30","60"],a:2,f:"An icosahedron has 20 faces, 12 vertices, and 30 edges."},
+      {q:"What is the sum of the first 10 positive integers?",o:["45","50","55","60"],a:2,f:"Gauss's formula: n(n+1)/2 = 10(11)/2 = 55."},
+      {q:"What is i\u00b2 in complex numbers?",o:["1","-1","i","0"],a:1,f:"i = \u221a(-1), so i\u00b2 = -1 by definition."},
+      {q:"What is 0! (zero factorial)?",o:["0","1","Undefined","-1"],a:1,f:"By convention, 0! = 1. It's essential for combinatorics."},
+    ]
+  },
+  geography: {
+    easy: [
+      {q:"What is the largest continent?",o:["Africa","Asia","Europe","Antarctica"],a:1,f:"Asia is about 44.6 million km\u00b2!"},
+      {q:"What ocean is the largest?",o:["Atlantic","Pacific","Indian","Arctic"],a:1,f:"The Pacific is larger than all land combined!"},
+      {q:"What country is shaped like a boot?",o:["Spain","Greece","Italy","Portugal"],a:2,f:"Sicily sits at the boot's toe!"},
+      {q:"On which continent is Egypt?",o:["Asia","Europe","Africa","South America"],a:2,f:"Egypt sits in the northeast corner of Africa."},
+      {q:"What is the capital of France?",o:["London","Berlin","Madrid","Paris"],a:3,f:"Paris is called the 'City of Light.'"},
+      {q:"What is the longest river in the world?",o:["Amazon","Nile","Yangtze","Mississippi"],a:1,f:"The Nile stretches about 6,650 km!"},
+      {q:"Which country has the most people?",o:["USA","China","India","Brazil"],a:2,f:"India surpassed China in population in 2023."},
+      {q:"What is the smallest country by area?",o:["Monaco","Vatican City","Malta","San Marino"],a:1,f:"Vatican City is only 0.44 km\u00b2!"},
+      {q:"What desert is the largest hot desert?",o:["Gobi","Sahara","Arabian","Kalahari"],a:1,f:"The Sahara is roughly the size of the USA!"},
+      {q:"What mountain is the tallest on Earth?",o:["K2","Kangchenjunga","Everest","Lhotse"],a:2,f:"Everest grows about 4mm taller each year!"},
+    ],
+    medium: [
+      {q:"What is the capital of Australia?",o:["Sydney","Melbourne","Canberra","Brisbane"],a:2,f:"Canberra was purpose-built as a compromise capital!"},
+      {q:"Which country has the most time zones?",o:["Russia","USA","China","France"],a:3,f:"France has 12 time zones due to overseas territories!"},
+      {q:"What is the deepest ocean trench?",o:["Tonga","Mariana","Java","Puerto Rico"],a:1,f:"The Mariana Trench is about 11 km deep!"},
+      {q:"What strait separates Europe from Africa?",o:["Bosporus","Hormuz","Gibraltar","Malacca"],a:2,f:"At its narrowest, Gibraltar is only 14.3 km wide."},
+      {q:"Lake Baikal is in which country?",o:["China","Mongolia","Russia","Kazakhstan"],a:2,f:"Baikal holds 20% of the world's unfrozen fresh water!"},
+      {q:"What is the largest island in the world?",o:["Borneo","Madagascar","Greenland","New Guinea"],a:2,f:"Greenland is about 2.17 million km\u00b2."},
+      {q:"Which river flows through the most countries?",o:["Nile","Amazon","Danube","Mekong"],a:2,f:"The Danube flows through or borders 10 countries."},
+      {q:"What is the driest continent?",o:["Africa","Australia","Antarctica","Asia"],a:2,f:"Antarctica is technically a desert \u2014 very little precipitation!"},
+    ],
+    hard: [
+      {q:"What is the capital of Myanmar?",o:["Yangon","Mandalay","Naypyidaw","Bago"],a:2,f:"Naypyidaw replaced Yangon as capital in 2006."},
+      {q:"Which country has the longest coastline?",o:["Russia","Indonesia","Canada","Australia"],a:2,f:"Canada's coastline is over 200,000 km!"},
+      {q:"What is the highest capital city in the world?",o:["Bogot\u00e1","Quito","La Paz","Addis Ababa"],a:2,f:"La Paz sits at about 3,640m above sea level!"},
+      {q:"What tectonic plate is Japan on?",o:["Pacific","Eurasian","Philippine","All three border it"],a:3,f:"Japan sits at the junction of 4 tectonic plates!"},
+      {q:"Which African country was never colonized?",o:["Ghana","Ethiopia","Kenya","Nigeria"],a:1,f:"Ethiopia successfully resisted colonization throughout history."},
+      {q:"What is the most landlocked country in Asia?",o:["Mongolia","Nepal","Uzbekistan","Laos"],a:2,f:"Uzbekistan is doubly landlocked \u2014 surrounded by other landlocked countries!"},
+    ]
+  },
+  history: {
+    easy: [
+      {q:"In what year did WWII end?",o:["1943","1944","1945","1946"],a:2,f:"Japan surrendered on September 2, 1945."},
+      {q:"Who was the first person on the Moon?",o:["Buzz Aldrin","Yuri Gagarin","John Glenn","Neil Armstrong"],a:3,f:"His boot prints are still there \u2014 no wind on the Moon!"},
+      {q:"What ancient civilization built the pyramids?",o:["Romans","Greeks","Egyptians","Persians"],a:2,f:"The Great Pyramid was tallest man-made structure for 3,800 years!"},
+      {q:"Who painted the Mona Lisa?",o:["Michelangelo","Raphael","Da Vinci","Donatello"],a:2,f:"Leonardo worked on it for about 16 years!"},
+      {q:"What wall fell in Berlin in 1989?",o:["Great Wall","Hadrian's Wall","Berlin Wall","Western Wall"],a:2,f:"The Berlin Wall stood for 28 years."},
+      {q:"Who was the first US President?",o:["Jefferson","Adams","Franklin","Washington"],a:3,f:"Washington is the only president who didn't live in the White House!"},
+      {q:"The Titanic sank in which year?",o:["1910","1912","1914","1916"],a:1,f:"Over 1,500 people lost their lives that night."},
+      {q:"What empire built the Colosseum?",o:["Greek","Roman","Byzantine","Ottoman"],a:1,f:"The Colosseum could hold up to 80,000 spectators!"},
+      {q:"What century did Columbus sail to America?",o:["14th","15th","16th","17th"],a:1,f:"Columbus sailed in 1492, landing in the Bahamas."},
+      {q:"What was the first civilization in Mesopotamia?",o:["Babylonian","Sumerian","Assyrian","Akkadian"],a:1,f:"Sumerians invented writing around 3400 BCE!"},
+    ],
+    medium: [
+      {q:"The Renaissance began in which country?",o:["France","England","Germany","Italy"],a:3,f:"Florence was the epicenter, funded by the Medici family."},
+      {q:"What year did the French Revolution begin?",o:["1776","1789","1799","1812"],a:1,f:"The storming of the Bastille was on July 14, 1789."},
+      {q:"Who wrote 'The Art of War'?",o:["Confucius","Lao Tzu","Sun Tzu","Genghis Khan"],a:2,f:"Written around the 5th century BCE, it's still studied today."},
+      {q:"What ancient trade route connected East and West?",o:["Spice Road","Silk Road","Gold Trail","Amber Route"],a:1,f:"The Silk Road stretched about 6,400 km across Asia."},
+      {q:"Which country started the Industrial Revolution?",o:["France","Germany","USA","Britain"],a:3,f:"It began in Britain around the 1760s with steam power."},
+      {q:"Who was the longest-reigning British monarch?",o:["Victoria","Elizabeth I","Elizabeth II","George III"],a:2,f:"Queen Elizabeth II reigned for over 70 years."},
+      {q:"What treaty ended World War I?",o:["Versailles","Paris","Vienna","Westphalia"],a:0,f:"The Treaty of Versailles was signed on June 28, 1919."},
+      {q:"What ancient wonder was in Alexandria?",o:["Colossus","Lighthouse","Gardens","Temple"],a:1,f:"The Lighthouse of Alexandria stood about 100m tall!"},
+    ],
+    hard: [
+      {q:"What year was the Magna Carta signed?",o:["1066","1215","1314","1492"],a:1,f:"Magna Carta laid the groundwork for constitutional law."},
+      {q:"Who was the first Emperor of China?",o:["Kublai Khan","Qin Shi Huang","Liu Bang","Wu Zetian"],a:1,f:"He unified China in 221 BCE and started the Great Wall."},
+      {q:"The Thirty Years' War was primarily fought where?",o:["France","England","Holy Roman Empire","Ottoman Empire"],a:2,f:"It devastated Central Europe from 1618-1648."},
+      {q:"What empire was ruled by Suleiman the Magnificent?",o:["Mughal","Persian","Byzantine","Ottoman"],a:3,f:"Under Suleiman, the Ottoman Empire reached its peak in the 1500s."},
+      {q:"What year did the Byzantine Empire fall?",o:["1204","1389","1453","1492"],a:2,f:"Constantinople fell to the Ottoman Turks in 1453."},
+      {q:"Who led the Haitian Revolution?",o:["Sim\u00f3n Bol\u00edvar","Toussaint Louverture","Jos\u00e9 Mart\u00ed","Dessalines"],a:1,f:"It was the first successful slave revolt leading to an independent nation."},
+    ]
+  }
+};
+
+// ==================== GAME STATE ====================
+
+let G = {};
+
+function freshState() {
+  return {
+    player: { name:'Hero', classId:'warrior', icon:'', hp:100, maxHp:100, shield:0, atk:10, def:5, wis:5, lck:5, xp:0, xpNext:100, level:1, gold:0, bonusTime:0 },
+    floor: 1, roomsExplored: 0, enemiesDefeated: 0,
+    dungeon: null, currentRoom: null,
+    inventory: {}, // { itemId: count }
+    usedQuestions: new Set(),
+    bossDefeated: false,
+    currentEnemy: null,
+    pendingDoor: null,
+  };
 }
 
-function updateLog() {
-  const logEl = document.getElementById('log');
-  logEl.innerHTML = gameState.log.map(m => `<p>${m}</p>`).join('');
+// ==================== DUNGEON GENERATION ====================
+
+function generateFloor(floor) {
+  const size = Math.min(5 + floor, 9);
+  const rooms = {};
+  const startX = Math.floor(size / 2), startY = Math.floor(size / 2);
+
+  // BFS to create connected dungeon
+  const visited = new Set();
+  const queue = [[startX, startY]];
+  visited.add(`${startX},${startY}`);
+  const roomCount = 6 + Math.min(floor * 2, 10) + Math.floor(Math.random() * 3);
+
+  while (queue.length > 0 && visited.size < roomCount) {
+    const idx = Math.floor(Math.random() * queue.length);
+    const [x, y] = queue.splice(idx, 1)[0];
+    const dirs = shuffle([[-1,0],[1,0],[0,-1],[0,1]]);
+    for (const [dx, dy] of dirs) {
+      const nx = x + dx, ny = y + dy;
+      const key = `${nx},${ny}`;
+      if (nx >= 0 && nx < size && ny >= 0 && ny < size && !visited.has(key) && visited.size < roomCount) {
+        visited.add(key);
+        queue.push([nx, ny]);
+      }
+    }
+  }
+
+  // Assign room types
+  const keys = [...visited];
+  const startKey = `${startX},${startY}`;
+
+  // Find room farthest from start for boss
+  let farthest = startKey, maxDist = 0;
+  for (const k of keys) {
+    const [rx, ry] = k.split(',').map(Number);
+    const dist = Math.abs(rx - startX) + Math.abs(ry - startY);
+    if (dist > maxDist) { maxDist = dist; farthest = k; }
+  }
+
+  // Find second farthest for exit
+  let exitKey = startKey, maxDist2 = 0;
+  for (const k of keys) {
+    if (k === farthest) continue;
+    const [rx, ry] = k.split(',').map(Number);
+    const dist = Math.abs(rx - startX) + Math.abs(ry - startY);
+    if (dist > maxDist2) { maxDist2 = dist; exitKey = k; }
+  }
+
+  for (const k of keys) {
+    let type = 'empty';
+    if (k === startKey) type = 'empty';
+    else if (k === farthest) type = 'boss';
+    else if (k === exitKey) type = 'exit';
+    else {
+      const r = Math.random();
+      if (r < 0.35) type = 'monster';
+      else if (r < 0.50) type = 'chest';
+      else if (r < 0.58) type = 'shop';
+      else if (r < 0.66) type = 'rest';
+      else type = 'empty';
+    }
+
+    const [rx, ry] = k.split(',').map(Number);
+    // Determine doors (connections to adjacent rooms)
+    const connections = {};
+    for (const [dx, dy, dir] of [[-1,0,'west'],[1,0,'east'],[0,-1,'north'],[0,1,'south']]) {
+      const nk = `${rx+dx},${ry+dy}`;
+      if (visited.has(nk)) connections[dir] = nk;
+    }
+
+    rooms[k] = { x: rx, y: ry, type, connections, visited: k === startKey, cleared: k === startKey, loot: null };
+  }
+
+  return { rooms, startKey, bossKey: farthest, exitKey, size };
 }
+
+// ==================== UI UPDATES ====================
 
 function updateUI() {
-  document.getElementById('level').textContent = gameState.player.level;
-  document.getElementById('hp').textContent = `${gameState.player.hp} / ${gameState.player.maxHP}`;
-  document.getElementById('exp').textContent = `${gameState.player.exp} / ${gameState.player.expNeeded}`;
-  document.getElementById('attack').textContent = gameState.player.attack;
-  document.getElementById('defense').textContent = gameState.player.defense;
-  document.getElementById('gold').textContent = gameState.player.gold;
-  document.getElementById('kills').textContent = gameState.player.kills;
-  document.getElementById('potionCount').textContent = gameState.potions;
-  
-  const itemsList = document.getElementById('itemsList');
-  if (gameState.inventory.length === 0) {
-    itemsList.innerHTML = '<div style="color: #888;">No items yet</div>';
+  const p = G.player;
+  document.getElementById('char-avatar').textContent = p.icon;
+  document.getElementById('char-name').textContent = p.name;
+  document.getElementById('char-class').textContent = CLASSES.find(c=>c.id===p.classId).name;
+  document.getElementById('char-level').textContent = `Level ${p.level}`;
+
+  document.getElementById('hp-bar').style.width = `${(p.hp/p.maxHp)*100}%`;
+  document.getElementById('hp-text').textContent = `${Math.ceil(p.hp)}/${p.maxHp}`;
+  document.getElementById('xp-bar').style.width = `${(p.xp/p.xpNext)*100}%`;
+  document.getElementById('xp-text').textContent = `${p.xp}/${p.xpNext}`;
+  document.getElementById('shield-bar').style.width = `${Math.min((p.shield/50)*100,100)}%`;
+  document.getElementById('shield-text').textContent = p.shield;
+
+  document.getElementById('stat-atk').textContent = p.atk;
+  document.getElementById('stat-def').textContent = p.def;
+  document.getElementById('stat-wis').textContent = p.wis;
+  document.getElementById('stat-lck').textContent = p.lck;
+  document.getElementById('gold-display').textContent = p.gold;
+
+  const zone = ZONES[Math.min(G.floor - 1, ZONES.length - 1)];
+  document.getElementById('zone-icon').textContent = zone.icon;
+  document.getElementById('zone-name').textContent = `${zone.name} \u2014 Floor ${G.floor}`;
+  document.getElementById('map-floor-label').textContent = `Floor ${G.floor}`;
+
+  renderInventory();
+  renderMinimap();
+}
+
+function renderInventory() {
+  const grid = document.getElementById('inv-grid');
+  grid.innerHTML = '';
+  const entries = Object.entries(G.inventory);
+  for (let i = 0; i < 12; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'inv-slot';
+    if (i < entries.length) {
+      const [itemId, count] = entries[i];
+      const item = ITEMS[itemId];
+      if (item && count > 0) {
+        slot.classList.add('has-item');
+        slot.textContent = item.icon;
+        if (count > 1) slot.innerHTML += `<span class="count">x${count}</span>`;
+        slot.onclick = () => useItem(itemId);
+        slot.onmouseenter = (e) => showTooltip(e, item.name, item.desc, 'Click to use');
+        slot.onmouseleave = hideTooltip;
+      }
+    }
+    grid.appendChild(slot);
+  }
+}
+
+function renderMinimap() {
+  const map = document.getElementById('minimap');
+  const d = G.dungeon;
+  if (!d) return;
+  map.innerHTML = '';
+  map.style.gridTemplateColumns = `repeat(${d.size}, 18px)`;
+  for (let y = 0; y < d.size; y++) {
+    for (let x = 0; x < d.size; x++) {
+      const cell = document.createElement('div');
+      cell.className = 'minimap-cell';
+      const k = `${x},${y}`;
+      const room = d.rooms[k];
+      if (room && room.visited) {
+        cell.classList.add('visited');
+        if (k === G.currentRoom) cell.classList.add('current');
+        if (room.type === 'boss') cell.classList.add('boss');
+        if (room.type === 'exit') cell.classList.add('exit');
+      }
+      map.appendChild(cell);
+    }
+  }
+}
+
+function showTooltip(e, name, desc, action) {
+  const tt = document.getElementById('tooltip');
+  tt.style.display = 'block';
+  document.getElementById('tt-name').textContent = name;
+  document.getElementById('tt-desc').textContent = desc;
+  document.getElementById('tt-action').textContent = action || '';
+  tt.style.left = Math.min(e.clientX + 12, window.innerWidth - 220) + 'px';
+  tt.style.top = (e.clientY - 60) + 'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+// ==================== EVENT LOG ====================
+
+function log(msg, cls='') {
+  const bar = document.getElementById('log-bar');
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${cls}`;
+  const now = new Date();
+  entry.innerHTML = `<span class="time">${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</span>${msg}`;
+  bar.appendChild(entry);
+  bar.scrollTop = bar.scrollHeight;
+  if (bar.children.length > 50) bar.removeChild(bar.firstChild);
+}
+
+// ==================== ROOM RENDERING ====================
+
+function renderRoom() {
+  const room = G.dungeon.rooms[G.currentRoom];
+  const rt = ROOM_TYPES[room.type];
+  const scene = document.getElementById('room-scene');
+
+  document.getElementById('room-icon').textContent = pick(rt.icons);
+  document.getElementById('room-title').textContent = pick(rt.titles);
+  document.getElementById('room-desc').textContent = pick(rt.descs);
+
+  // Close overlays
+  document.getElementById('question-overlay').classList.remove('active');
+  document.getElementById('loot-popup').classList.remove('active');
+  document.getElementById('shop-overlay').classList.remove('active');
+
+  // Handle room events
+  if (!room.cleared) {
+    room.visited = true;
+    G.roomsExplored++;
+
+    if (room.type === 'monster') {
+      startMonsterEncounter(room);
+      return;
+    }
+    if (room.type === 'boss') {
+      startBossEncounter(room);
+      return;
+    }
+    if (room.type === 'chest') {
+      room.cleared = true;
+      generateLoot();
+      renderDoors();
+      updateUI();
+      return;
+    }
+    if (room.type === 'shop') {
+      room.cleared = true;
+      openShop();
+      renderDoors();
+      updateUI();
+      return;
+    }
+    if (room.type === 'rest') {
+      room.cleared = true;
+      showRestSite();
+      return;
+    }
+    room.cleared = true;
+  }
+
+  renderDoors();
+  updateUI();
+}
+
+function renderDoors() {
+  const room = G.dungeon.rooms[G.currentRoom];
+  const doorsEl = document.getElementById('doors');
+  doorsEl.innerHTML = '';
+
+  const dirIcons = { north:'\u2B06\uFE0F', south:'\u2B07\uFE0F', east:'\u27A1\uFE0F', west:'\u2B05\uFE0F' };
+
+  for (const [dir, targetKey] of Object.entries(room.connections)) {
+    const target = G.dungeon.rooms[targetKey];
+    const btn = document.createElement('button');
+    let extra = '';
+    if (target.type === 'boss' && !target.cleared) { btn.classList.add('boss-door'); extra = ' (BOSS)'; }
+    if (target.type === 'exit') {
+      btn.classList.add('exit-door');
+      extra = ' (EXIT)';
+      if (!G.bossDefeated) { btn.classList.add('locked'); extra = ' (LOCKED)'; }
+    }
+    btn.className += ' door-btn';
+    btn.innerHTML = `<span class="door-icon">${dirIcons[dir]}</span><span class="door-label">${dir}${extra}</span>`;
+    btn.onclick = () => moveTo(dir, targetKey);
+    doorsEl.appendChild(btn);
+  }
+
+  // Add use-item hint
+  if (Object.keys(G.inventory).length > 0) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size:0.7rem;color:var(--muted);margin-top:8px;font-weight:600';
+    hint.textContent = 'Tip: Click items in your inventory to use them';
+    doorsEl.appendChild(hint);
+  }
+}
+
+function moveTo(dir, targetKey) {
+  G.currentRoom = targetKey;
+  log(`Moved ${dir}`);
+
+  // Animate transition
+  const scene = document.getElementById('room-scene');
+  scene.style.animation = 'none';
+  scene.offsetHeight;
+  scene.style.animation = 'fadeIn 0.3s ease';
+
+  renderRoom();
+}
+
+// ==================== ENCOUNTERS ====================
+
+function startMonsterEncounter(room) {
+  const floorScale = 1 + (G.floor - 1) * 0.3;
+  const template = pick(ENEMIES);
+  G.currentEnemy = {
+    ...template,
+    hp: Math.ceil(template.hp * floorScale),
+    maxHp: Math.ceil(template.hp * floorScale),
+    dmg: Math.ceil(template.dmg * floorScale),
+  };
+  log(`Encountered ${G.currentEnemy.name}!`, 'red-log');
+  showQuestion(room, false);
+}
+
+function startBossEncounter(room) {
+  const bossIdx = Math.min(G.floor - 1, BOSSES.length - 1);
+  const template = BOSSES[bossIdx];
+  const floorScale = 1 + (G.floor - 1) * 0.15;
+  G.currentEnemy = {
+    ...template,
+    hp: Math.ceil(template.hp * floorScale),
+    maxHp: Math.ceil(template.hp * floorScale),
+    dmg: Math.ceil(template.dmg * floorScale),
+  };
+  log(`BOSS: ${G.currentEnemy.name} appears!`, 'red-log');
+  showQuestion(room, true);
+}
+
+// ==================== QUESTIONS ====================
+
+function getQuestion() {
+  const cats = Object.keys(QUESTIONS);
+  const cat = pick(cats);
+  // Difficulty scales with player level: easy 1-3, medium 4-7, hard 8+
+  // Mix in harder questions earlier as player levels up
+  let diff;
+  const lvl = G.player.level;
+  const roll = Math.random();
+  if (lvl <= 3) {
+    diff = roll < 0.8 ? 'easy' : 'medium';
+  } else if (lvl <= 5) {
+    diff = roll < 0.3 ? 'easy' : roll < 0.85 ? 'medium' : 'hard';
+  } else if (lvl <= 7) {
+    diff = roll < 0.1 ? 'easy' : roll < 0.6 ? 'medium' : 'hard';
   } else {
-    itemsList.innerHTML = gameState.inventory.map(item => `<div class="item">${item.name} (${item.quantity})</div>`).join('');
+    diff = roll < 0.15 ? 'medium' : 'hard';
+  }
+  const pool = QUESTIONS[cat][diff] || QUESTIONS[cat].easy;
+
+  // Filter out used questions
+  let available = pool.filter((_, i) => !G.usedQuestions.has(`${cat}_${diff}_${i}`));
+  if (available.length === 0) {
+    // Reset used for this pool
+    pool.forEach((_, i) => G.usedQuestions.delete(`${cat}_${diff}_${i}`));
+    available = pool;
+  }
+
+  const idx = Math.floor(Math.random() * available.length);
+  const q = available[idx];
+  const realIdx = pool.indexOf(q);
+  G.usedQuestions.add(`${cat}_${diff}_${realIdx}`);
+
+  return { ...q, category: cat, difficulty: diff };
+}
+
+let questionTimer = null;
+
+function showQuestion(room, isBoss) {
+  const overlay = document.getElementById('question-overlay');
+  overlay.classList.add('active');
+
+  const q = getQuestion();
+  const enemy = G.currentEnemy;
+
+  // Show enemy
+  const enemyEl = document.getElementById('enemy-display');
+  if (enemy) {
+    enemyEl.style.display = 'flex';
+    document.getElementById('enemy-icon').textContent = enemy.icon;
+    document.getElementById('enemy-name').textContent = `${enemy.name} (HP: ${enemy.hp}/${enemy.maxHp})`;
+    document.getElementById('enemy-hp-fill').style.width = `${(enemy.hp/enemy.maxHp)*100}%`;
+  } else {
+    enemyEl.style.display = 'none';
+  }
+
+  document.getElementById('q-category').textContent = q.category + ' \u2014 ' + q.difficulty;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-feedback').style.display = 'none';
+
+  const optsEl = document.getElementById('q-options');
+  optsEl.innerHTML = '';
+  const keys = ['A','B','C','D'];
+
+  // Shuffle options while tracking correct answer
+  const optIndices = [0,1,2,3];
+  const shuffled = shuffle([...optIndices]);
+  const newCorrect = shuffled.indexOf(q.a);
+
+  shuffled.forEach((origIdx, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'q-opt';
+    btn.innerHTML = `<span class="key">${keys[i]}</span><span>${q.o[origIdx]}</span>`;
+    btn.onclick = () => answerQuestion(i, newCorrect, q, room, isBoss);
+    optsEl.appendChild(btn);
+  });
+
+  // Timer
+  const baseTime = 15;
+  const wisBonus = Math.floor(G.player.wis / 5);
+  const classBonus = G.player.classId === 'scholar' ? 3 : 0;
+  const itemBonus = G.player.bonusTime;
+  G.player.bonusTime = 0;
+  const totalTime = baseTime + wisBonus + classBonus + itemBonus;
+  let timeLeft = totalTime;
+
+  updateQuestionTimer(timeLeft, totalTime);
+  clearInterval(questionTimer);
+  questionTimer = setInterval(() => {
+    timeLeft -= 0.1;
+    updateQuestionTimer(timeLeft, totalTime);
+    if (timeLeft <= 0) {
+      clearInterval(questionTimer);
+      answerQuestion(-1, newCorrect, q, room, isBoss);
+    }
+  }, 100);
+
+  // Keyboard
+  const handler = (e) => {
+    const map = { 'a':0,'b':1,'c':2,'d':3,'1':0,'2':1,'3':2,'4':3 };
+    const idx = map[e.key.toLowerCase()];
+    if (idx !== undefined) {
+      const btns = optsEl.querySelectorAll('.q-opt');
+      if (btns[idx] && !btns[idx].classList.contains('disabled')) {
+        btns[idx].click();
+      }
+    }
+    document.removeEventListener('keydown', handler);
+  };
+  document.addEventListener('keydown', handler);
+}
+
+function updateQuestionTimer(timeLeft, totalTime) {
+  const t = Math.ceil(Math.max(0, timeLeft));
+  document.getElementById('q-timer-text').textContent = `${t}s`;
+  document.getElementById('q-timer-fill').style.width = `${(timeLeft/totalTime)*100}%`;
+  const danger = timeLeft <= 5;
+  document.getElementById('q-timer').classList.toggle('danger', danger);
+  document.getElementById('q-timer-fill').classList.toggle('danger', danger);
+}
+
+function answerQuestion(chosen, correct, q, room, isBoss) {
+  clearInterval(questionTimer);
+
+  const btns = document.querySelectorAll('.q-opt');
+  btns.forEach((btn, i) => {
+    btn.classList.add('disabled');
+    if (i === correct) btn.classList.add('correct');
+    if (i === chosen && chosen !== correct) btn.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('q-feedback');
+  fb.style.display = 'block';
+
+  if (chosen === correct) {
+    // Correct!
+    const dmg = G.player.atk + Math.floor(G.player.wis / 2);
+    if (G.currentEnemy) {
+      G.currentEnemy.hp -= 1;
+      document.getElementById('enemy-hp-fill').style.width = `${Math.max(0,(G.currentEnemy.hp/G.currentEnemy.maxHp)*100)}%`;
+      document.getElementById('enemy-name').textContent = `${G.currentEnemy.name} (HP: ${Math.max(0,G.currentEnemy.hp)}/${G.currentEnemy.maxHp})`;
+    }
+
+    const xpGain = isBoss ? 80 : 25 + G.floor * 5;
+    const xpBonus = G.player.classId === 'scholar' ? Math.floor(xpGain * 0.25) : 0;
+    // Fixed gold per difficulty: easy 10, medium 50, hard 100
+    const diffGold = q.difficulty === 'hard' ? 100 : q.difficulty === 'medium' ? 50 : 10;
+    const goldGain = Math.floor(diffGold * (G.player.classId === 'rogue' ? 1.5 : 1));
+
+    fb.className = 'q-feedback correct-fb';
+    fb.innerHTML = `Correct! +${xpGain + xpBonus} XP, +${goldGain} gold. ${q.f}`;
+    log(`Correct answer! +${xpGain + xpBonus} XP, +${goldGain} gold`, 'green-log');
+
+    addXP(xpGain + xpBonus);
+    G.player.gold += goldGain;
+
+    if (G.currentEnemy && G.currentEnemy.hp <= 0) {
+      // Enemy defeated
+      log(`Defeated ${G.currentEnemy.name}!`, 'gold-log');
+      G.enemiesDefeated++;
+      room.cleared = true;
+      if (isBoss) { G.bossDefeated = true; log('The exit is now unlocked!', 'green-log'); }
+      G.currentEnemy = null;
+
+      setTimeout(() => {
+        document.getElementById('question-overlay').classList.remove('active');
+        if (Math.random() < 0.4) generateLoot();
+        renderDoors();
+        updateUI();
+      }, 1800);
+    } else if (G.currentEnemy) {
+      // Enemy still alive, next question
+      setTimeout(() => showQuestion(room, isBoss), 1800);
+    } else {
+      room.cleared = true;
+      setTimeout(() => {
+        document.getElementById('question-overlay').classList.remove('active');
+        renderDoors();
+        updateUI();
+      }, 1800);
+    }
+  } else {
+    // Wrong!
+    let rawDmg = G.currentEnemy ? G.currentEnemy.dmg : 10 + G.floor * 3;
+    const defReduction = Math.floor(G.player.def * 0.8);
+    let dmg = Math.max(3, rawDmg - defReduction);
+
+    // Rogue dodge chance
+    if (G.player.classId === 'rogue' && Math.random() < G.player.lck * 0.02) {
+      dmg = 0;
+      fb.className = 'q-feedback wrong-fb';
+      fb.innerHTML = `Wrong, but you dodged the attack! The answer was: ${q.o[q.a]}. ${q.f}`;
+      log('Wrong answer, but dodged!', 'blue-log');
+    } else {
+      // Apply shield first
+      if (G.player.shield > 0) {
+        const absorbed = Math.min(G.player.shield, dmg);
+        G.player.shield -= absorbed;
+        dmg -= absorbed;
+        if (absorbed > 0) log(`Shield absorbed ${absorbed} damage`, 'blue-log');
+      }
+
+      G.player.hp -= dmg;
+      fb.className = 'q-feedback wrong-fb';
+      fb.innerHTML = `${chosen === -1 ? "Time's up!" : "Wrong!"} -${dmg} HP. The answer was: ${q.o[q.a]}. ${q.f}`;
+      log(`${chosen === -1 ? "Time's up" : "Wrong answer"}! Took ${dmg} damage`, 'red-log');
+    }
+
+    updateUI();
+
+    if (G.player.hp <= 0) {
+      G.player.hp = 0;
+      updateUI();
+      setTimeout(showDeath, 1200);
+      return;
+    }
+
+    // Continue fighting or flee
+    if (G.currentEnemy && G.currentEnemy.hp > 0) {
+      setTimeout(() => showQuestion(room, isBoss), 1800);
+    } else {
+      room.cleared = true;
+      setTimeout(() => {
+        document.getElementById('question-overlay').classList.remove('active');
+        renderDoors();
+        updateUI();
+      }, 1800);
+    }
   }
 }
 
-function buildShop() {
-  const shopGrid = document.getElementById('shopGrid');
-  shopGrid.innerHTML = shopItems.map(item => `
-    <div class="shop-item" onclick="buyItem('${item.id}')">
-      <div class="shop-item-icon">${item.icon}</div>
-      <div class="shop-item-name">${item.name}</div>
-      <div class="shop-item-desc">${item.desc}</div>
-      <div class="shop-item-price">💰 ${item.price}</div>
-    </div>
-  `).join('');
+// ==================== LOOT ====================
+
+function generateLoot() {
+  const popup = document.getElementById('loot-popup');
+  const itemsEl = document.getElementById('loot-items');
+  itemsEl.innerHTML = '';
+
+  const lootTable = ['hp_potion','hp_potion','hp_potion','shield_scroll','shield_scroll','xp_tome','time_crystal','lucky_coin'];
+  if (G.floor >= 3) lootTable.push('big_hp_potion','atk_gem','def_gem','wis_gem');
+
+  const luckBonus = G.player.classId === 'rogue' ? 1 : 0;
+  const count = 1 + (Math.random() < 0.3 + G.player.lck * 0.01 ? 1 : 0) + luckBonus * (Math.random() < 0.4 ? 1 : 0);
+  const goldAmount = Math.floor((10 + Math.random() * 15 + G.floor * 5) * (G.player.classId === 'rogue' ? 1.5 : 1));
+
+  const lootItems = [];
+  for (let i = 0; i < Math.min(count, 3); i++) {
+    const itemId = pick(lootTable);
+    addItem(itemId);
+    lootItems.push(itemId);
+  }
+  G.player.gold += goldAmount;
+
+  // Render
+  lootItems.forEach(id => {
+    const item = ITEMS[id];
+    const el = document.createElement('div');
+    el.className = 'loot-item';
+    el.innerHTML = `<div class="loot-icon">${item.icon}</div><div class="loot-name">${item.name}</div><div class="loot-desc">${item.desc}</div>`;
+    itemsEl.appendChild(el);
+  });
+
+  const goldEl = document.createElement('div');
+  goldEl.className = 'loot-item';
+  goldEl.innerHTML = `<div class="loot-icon">\u{1FA99}</div><div class="loot-name">${goldAmount} Gold</div>`;
+  itemsEl.appendChild(goldEl);
+
+  popup.classList.add('active');
+  log(`Found loot: ${lootItems.map(id=>ITEMS[id].name).join(', ')} and ${goldAmount} gold`, 'gold-log');
+  updateUI();
 }
 
-function toggleShop() {
-  gameState.shopOpen = !gameState.shopOpen;
-  document.getElementById('shopPanel').style.display = gameState.shopOpen ? 'block' : 'none';
-  if (gameState.shopOpen) {
-    buildShop();
-    logMessage('🧙 Welcome to the Wandering Merchant!');
-  }
+function closeLoot() {
+  document.getElementById('loot-popup').classList.remove('active');
+}
+
+function addItem(itemId) {
+  G.inventory[itemId] = (G.inventory[itemId] || 0) + 1;
+}
+
+function useItem(itemId) {
+  if (!G.inventory[itemId] || G.inventory[itemId] <= 0) return;
+  const item = ITEMS[itemId];
+  const result = item.use(G);
+  G.inventory[itemId]--;
+  if (G.inventory[itemId] <= 0) delete G.inventory[itemId];
+  log(`Used ${item.name}: ${result}`, 'blue-log');
+  updateUI();
+}
+
+// ==================== SHOP ====================
+
+function openShop() {
+  const overlay = document.getElementById('shop-overlay');
+  overlay.classList.add('active');
+  renderShopItems();
+}
+
+function renderShopItems() {
+  const el = document.getElementById('shop-items');
+  el.innerHTML = '';
+  SHOP_ITEMS.forEach(si => {
+    const item = ITEMS[si.item];
+    const cost = Math.floor(si.cost * (1 + (G.floor - 1) * 0.15));
+    const div = document.createElement('div');
+    div.className = 'shop-item';
+    if (G.player.gold < cost) div.classList.add('cant-afford');
+    div.innerHTML = `<div class="si-icon">${item.icon}</div><div class="si-name">${item.name}</div><div class="si-desc">${item.desc}</div><div class="si-price">\u{1FA99} ${cost}</div>`;
+    div.onclick = () => {
+      if (G.player.gold >= cost) {
+        G.player.gold -= cost;
+        addItem(si.item);
+        log(`Bought ${item.name} for ${cost} gold`, 'gold-log');
+        updateUI();
+        renderShopItems();
+      }
+    };
+    el.appendChild(div);
+  });
 }
 
 function closeShop() {
-  gameState.shopOpen = false;
-  document.getElementById('shopPanel').style.display = 'none';
+  document.getElementById('shop-overlay').classList.remove('active');
 }
 
-function buyItem(itemId) {
-  const item = shopItems.find(i => i.id === itemId);
-  if (!item) return;
-  
-  if (gameState.player.gold < item.price) {
-    logMessage(`❌ Not enough gold! Need ${item.price}, have ${gameState.player.gold}`);
-    return;
-  }
-  
-  gameState.player.gold -= item.price;
-  
-  if (item.type === 'potion') {
-    gameState.potions += 1;
-    logMessage(`🧪 Bought ${item.name}! (${gameState.potions} total)`);
-  } else if (item.type === 'scroll') {
-    gameState.inventory.push({ name: item.name, quantity: 1, effect: item.effect });
-    logMessage(`📜 Bought ${item.name}!`);
-  } else if (item.type === 'crystal') {
-    gameState.inventory.push({ name: item.name, quantity: 1, effect: item.effect });
-    logMessage(`💎 Bought ${item.name}!`);
-  } else if (item.type === 'tome') {
-    gameState.player.exp += item.effect;
-    logMessage(`📖 Bought ${item.name}! +${item.effect} XP`);
-    if (gameState.player.exp >= gameState.player.expNeeded) {
-      levelUp();
-    }
-  }
-  
+// ==================== REST SITE ====================
+
+function showRestSite() {
+  const doorsEl = document.getElementById('doors');
+  doorsEl.innerHTML = '';
+  const choices = document.createElement('div');
+  choices.className = 'rest-choices';
+
+  const restBtn = document.createElement('button');
+  restBtn.className = 'btn green sm';
+  restBtn.textContent = 'Rest (+40 HP)';
+  restBtn.onclick = () => {
+    G.player.hp = Math.min(G.player.maxHp, G.player.hp + 40);
+    log('Rested and recovered 40 HP', 'green-log');
+    updateUI();
+    renderDoors();
+  };
+
+  const trainBtn = document.createElement('button');
+  trainBtn.className = 'btn sm';
+  trainBtn.textContent = 'Train (+1 random stat)';
+  trainBtn.onclick = () => {
+    const stats = ['atk','def','wis','lck'];
+    const stat = pick(stats);
+    G.player[stat] += 1;
+    log(`Trained: +1 ${stat.toUpperCase()}`, 'blue-log');
+    updateUI();
+    renderDoors();
+  };
+
+  choices.appendChild(restBtn);
+  choices.appendChild(trainBtn);
+  doorsEl.appendChild(choices);
   updateUI();
 }
 
-function usePotion() {
-  if (gameState.potions <= 0) {
-    logMessage('❌ No potions available!');
-    return;
+// ==================== XP & LEVELING ====================
+
+function addXP(amount) {
+  G.player.xp += amount;
+  while (G.player.xp >= G.player.xpNext) {
+    G.player.xp -= G.player.xpNext;
+    G.player.level++;
+    G.player.xpNext = Math.floor(G.player.xpNext * 1.4);
+    levelUp();
   }
-  
-  const healed = Math.min(30, gameState.player.maxHP - gameState.player.hp);
-  gameState.player.hp += healed;
-  gameState.potions -= 1;
-  logMessage(`💚 Used potion! Healed ${healed} HP. (${gameState.potions} left)`);
-  updateUI();
-  render();
-}
-
-function render() {
-  const world = document.getElementById('gameWorld');
-  world.innerHTML = '';
-  
-  // Render NPCs
-  gameState.npcs.forEach(npc => {
-    const el = document.createElement('div');
-    el.className = 'npc';
-    el.textContent = '🧙';
-    el.style.left = npc.x + 'px';
-    el.style.top = npc.y + 'px';
-    el.title = npc.name;
-    world.appendChild(el);
-  });
-  
-  // Render Merchant
-  const merchant = { x: 500, y: 50, name: 'Wandering Merchant' };
-  const merEl = document.createElement('div');
-  merEl.className = 'merchant';
-  merEl.textContent = '🧙';
-  merEl.style.left = merchant.x + 'px';
-  merEl.style.top = merchant.y + 'px';
-  merEl.title = merchant.name;
-  world.appendChild(merEl);
-  
-  // Render Enemies
-  gameState.enemies.forEach((enemy, idx) => {
-    const el = document.createElement('div');
-    el.className = 'enemy';
-    el.textContent = '👹';
-    el.style.left = enemy.x + 'px';
-    el.style.top = enemy.y + 'px';
-    el.title = `${enemy.name} (${enemy.hp}/${enemy.maxHP})`;
-    world.appendChild(el);
-  });
-  
-  // Render Loot
-  gameState.loot.forEach(item => {
-    const el = document.createElement('div');
-    el.className = 'loot';
-    el.textContent = '💰';
-    el.style.left = item.x + 'px';
-    el.style.top = item.y + 'px';
-    world.appendChild(el);
-  });
-  
-  // Render Player
-  const playerEl = document.createElement('div');
-  playerEl.className = 'player';
-  playerEl.textContent = '⚔️';
-  playerEl.style.left = gameState.player.x + 'px';
-  playerEl.style.top = gameState.player.y + 'px';
-  world.appendChild(playerEl);
-  
-  updateUI();
-}
-
-function movePlayer(dx, dy) {
-  if (gameState.inCombat) return;
-  
-  const world = document.getElementById('gameWorld');
-  const maxX = world.offsetWidth - 30;
-  const maxY = world.offsetHeight - 30;
-  
-  gameState.player.x = Math.max(0, Math.min(maxX, gameState.player.x + dx));
-  gameState.player.y = Math.max(0, Math.min(maxY, gameState.player.y + dy));
-  
-  checkCollisions();
-  render();
-}
-
-function checkCollisions() {
-  // Merchant collision
-  const merchant = { x: 500, y: 50 };
-  const merchDist = Math.hypot(gameState.player.x - merchant.x, gameState.player.y - merchant.y);
-  if (merchDist < 35) {
-    toggleShop();
-  }
-  
-  // NPC collision
-  gameState.npcs.forEach(npc => {
-    const dist = Math.hypot(gameState.player.x - npc.x, gameState.player.y - npc.y);
-    if (dist < 35) {
-      logMessage(`📢 ${npc.name}: "${npc.message}"`);
-      npc.x = -999;
-    }
-  });
-  
-  // Enemy collision
-  gameState.enemies.forEach(enemy => {
-    const dist = Math.hypot(gameState.player.x - enemy.x, gameState.player.y - enemy.y);
-    if (dist < 35 && !gameState.inCombat) {
-      startCombat(enemy);
-    }
-  });
-  
-  // Loot collision
-  gameState.loot = gameState.loot.filter(item => {
-    const dist = Math.hypot(gameState.player.x - item.x, gameState.player.y - item.y);
-    if (dist < 35) {
-      gameState.inventory.push({ name: item.name, quantity: 1 });
-      logMessage(`🎁 Found ${item.name}!`);
-      gameState.player.gold += item.value;
-      return false;
-    }
-    return true;
-  });
-}
-
-function startCombat(enemy) {
-  gameState.inCombat = true;
-  gameState.currentEnemy = enemy;
-  const combatPanel = document.getElementById('combatPanel');
-  combatPanel.innerHTML = `
-    <h3>⚔️ Battle: ${enemy.name}</h3>
-    <p>Enemy HP: <span id="enemyHp">${enemy.hp}</span> / ${enemy.maxHP}</p>
-    <p>Your HP: <span id="playerHp">${gameState.player.hp}</span> / ${gameState.player.maxHP}</p>
-    <div class="combat-action" onclick="playerAttack()">Attack (${gameState.player.attack} DMG)</div>
-    <div class="combat-action" onclick="playerDefend()">Defend</div>
-    ${gameState.potions > 0 ? `<div class="combat-action" onclick="usePotionCombat()">Use Potion (${gameState.potions})</div>` : ''}
-    <div class="combat-action" onclick="playerRun()">Run Away</div>
-  `;
-  combatPanel.style.display = 'block';
-  logMessage(`⚔️ Battle started with ${enemy.name}!`);
-}
-
-function playerAttack() {
-  const enemy = gameState.currentEnemy;
-  const damage = Math.max(1, gameState.player.attack + Math.floor(Math.random() * 5) - 2);
-  enemy.hp -= damage;
-  logMessage(`💥 You hit for ${damage} damage!`);
-  updateCombatDisplay();
-  
-  if (enemy.hp <= 0) {
-    endCombat(true);
-  } else {
-    setTimeout(enemyTurn, 500);
-  }
-}
-
-function playerDefend() {
-  const enemy = gameState.currentEnemy;
-  const damage = Math.max(1, Math.floor(enemy.attack / 2 + Math.random() * 3));
-  gameState.player.hp -= damage;
-  logMessage(`🛡️ You defend! Enemy deals ${damage} damage.`);
-  updateCombatDisplay();
-  
-  if (gameState.player.hp <= 0) {
-    endCombat(false);
-  } else {
-    setTimeout(enemyTurn, 500);
-  }
-}
-
-function usePotionCombat() {
-  if (gameState.potions <= 0) return;
-  
-  const healed = Math.min(30, gameState.player.maxHP - gameState.player.hp);
-  gameState.player.hp += healed;
-  gameState.potions -= 1;
-  logMessage(`💚 Used potion! Healed ${healed} HP.`);
-  updateCombatDisplay();
-  setTimeout(enemyTurn, 500);
-}
-
-function playerRun() {
-  if (Math.random() > 0.5) {
-    logMessage('🏃 You escaped!');
-    gameState.player.x = 50;
-    gameState.player.y = 50;
-    endCombat(null);
-  } else {
-    logMessage('❌ Escape failed!');
-    setTimeout(enemyTurn, 500);
-  }
-}
-
-function enemyTurn() {
-  const enemy = gameState.currentEnemy;
-  const damage = Math.max(1, enemy.attack + Math.floor(Math.random() * 4) - 2);
-  gameState.player.hp -= damage;
-  logMessage(`👹 ${enemy.name} hits for ${damage} damage!`);
-  updateCombatDisplay();
-  
-  if (gameState.player.hp <= 0) {
-    endCombat(false);
-  }
-}
-
-function updateCombatDisplay() {
-  const enemy = gameState.currentEnemy;
-  const combatPanel = document.getElementById('combatPanel');
-  combatPanel.innerHTML = `
-    <h3>⚔️ Battle: ${enemy.name}</h3>
-    <p>Your HP: <span id="playerHp">${gameState.player.hp}</span> / ${gameState.player.maxHP}</p>
-    <p>Enemy HP: <span id="enemyHp">${enemy.hp}</span> / ${enemy.maxHP}</p>
-    <div class="combat-action" onclick="playerAttack()">Attack</div>
-    <div class="combat-action" onclick="playerDefend()">Defend</div>
-    ${gameState.potions > 0 ? `<div class="combat-action" onclick="usePotionCombat()">Use Potion (${gameState.potions})</div>` : ''}
-    <div class="combat-action" onclick="playerRun()">Run Away</div>
-  `;
-}
-
-function endCombat(won) {
-  gameState.inCombat = false;
-  const combatPanel = document.getElementById('combatPanel');
-  combatPanel.style.display = 'none';
-  
-  if (won) {
-    const exp = 50;
-    const gold = 25 + Math.floor(Math.random() * 25);
-    gameState.player.exp += exp;
-    gameState.player.gold += gold;
-    gameState.player.kills += 1;
-    logMessage(`🎉 Victory! +${exp} EXP, +${gold} gold!`);
-    
-    if (gameState.player.exp >= gameState.player.expNeeded) {
-      levelUp();
-    }
-    
-    gameState.loot.push({
-      x: gameState.currentEnemy.x,
-      y: gameState.currentEnemy.y,
-      name: 'Treasure',
-      value: gold
-    });
-    
-    gameState.enemies = gameState.enemies.filter(e => e !== gameState.currentEnemy);
-  } else if (won === false) {
-    logMessage('💀 You were defeated! Game Over.');
-    setTimeout(() => resetGame(), 2000);
-  } else {
-    logMessage('🏃 You ran away!');
-  }
-  
-  gameState.currentEnemy = null;
-  render();
 }
 
 function levelUp() {
-  gameState.player.level++;
-  gameState.player.exp = 0;
-  gameState.player.expNeeded += 50;
-  gameState.player.attack += 3;
-  gameState.player.defense += 2;
-  gameState.player.maxHP += 20;
-  gameState.player.hp = gameState.player.maxHP;
-  logMessage(`⭐ Level Up! You are now level ${gameState.player.level}!`);
+  const p = G.player;
+  const hpGain = 10 + Math.floor(Math.random() * 6);
+  const atkGain = 1 + Math.floor(Math.random() * 2);
+  const defGain = 1 + Math.floor(Math.random() * 2);
+  const wisGain = 1 + Math.floor(Math.random() * 2);
+  const lckGain = Math.random() < 0.5 ? 1 : 0;
+
+  p.maxHp += hpGain;
+  p.hp = Math.min(p.maxHp, p.hp + Math.floor(hpGain * 0.7));
+  p.atk += atkGain;
+  p.def += defGain;
+  p.wis += wisGain;
+  p.lck += lckGain;
+
+  log(`LEVEL UP! Now level ${p.level}`, 'gold-log');
+
+  // Show level up overlay
+  document.getElementById('lu-title').textContent = 'Level Up!';
+  document.getElementById('lu-sub').textContent = `You reached level ${p.level}`;
+  const statsEl = document.getElementById('lu-stats');
+  statsEl.innerHTML = '';
+  const gains = [['Max HP', `+${hpGain}`],['Attack', `+${atkGain}`],['Defense', `+${defGain}`],['Wisdom', `+${wisGain}`]];
+  if (lckGain) gains.push(['Luck', `+${lckGain}`]);
+  gains.forEach(([name, val]) => {
+    const row = document.createElement('div');
+    row.className = 'lu-stat';
+    row.innerHTML = `<span>${name}</span><span class="up">${val}</span>`;
+    statsEl.appendChild(row);
+  });
+  document.getElementById('level-up-overlay').classList.add('active');
 }
 
-function spawnEnemy() {
-  const enemies = [
-    { name: 'Goblin', hp: 15, maxHP: 15, attack: 5 },
-    { name: 'Orc', hp: 25, maxHP: 25, attack: 8 },
-    { name: 'Troll', hp: 40, maxHP: 40, attack: 12 },
-    { name: 'Dragon', hp: 60, maxHP: 60, attack: 15 }
-  ];
-  const enemy = JSON.parse(JSON.stringify(enemies[Math.floor(Math.random() * enemies.length)]));
-  enemy.x = Math.random() * 350 + 100;
-  enemy.y = Math.random() * 300 + 50;
-  gameState.enemies.push(enemy);
-  logMessage(`👹 A ${enemy.name} appeared!`);
-  render();
+function closeLevelUp() {
+  document.getElementById('level-up-overlay').classList.remove('active');
+  updateUI();
 }
 
-function resetGame() {
-  gameState.player = { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0, kills: 0 };
-  gameState.enemies = [];
-  gameState.npcs = [];
-  gameState.loot = [];
-  gameState.inventory = [];
-  gameState.potions = 0;
-  gameState.inCombat = false;
-  gameState.shopOpen = false;
-  document.getElementById('shopPanel').style.display = 'none';
-  gameState.log = ['Game reset!'];
-  initGame();
+// ==================== DEATH ====================
+
+function showDeath() {
+  document.getElementById('death-floor').textContent = G.floor;
+  document.getElementById('death-rooms').textContent = G.roomsExplored;
+  document.getElementById('death-kills').textContent = G.enemiesDefeated;
+  document.getElementById('death-screen').classList.add('active');
 }
 
-function initGame() {
-  gameState.npcs = [
-    { x: 400, y: 100, name: 'Elara the Wise', message: 'Defeat enemies to gain experience and gold!' },
-    { x: 100, y: 350, name: 'Bron the Blacksmith', message: 'Visit the merchant for powerful items!' }
-  ];
-  
-  for (let i = 0; i < 2; i++) {
-    spawnEnemy();
+function restartGame() {
+  document.getElementById('death-screen').classList.remove('active');
+  document.getElementById('game').classList.remove('active');
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+
+// ==================== FLOOR TRANSITION ====================
+
+function goToNextFloor() {
+  G.floor++;
+  G.bossDefeated = false;
+  G.dungeon = generateFloor(G.floor);
+  G.currentRoom = G.dungeon.startKey;
+  G.dungeon.rooms[G.currentRoom].visited = true;
+  G.dungeon.rooms[G.currentRoom].cleared = true;
+
+  log(`\u2014\u2014\u2014 Descended to Floor ${G.floor} \u2014\u2014\u2014`, 'purple-log');
+
+  // Animate
+  const scene = document.getElementById('room-scene');
+  scene.style.animation = 'none';
+  scene.offsetHeight;
+  scene.style.animation = 'fadeIn 0.5s ease';
+
+  renderRoom();
+  updateUI();
+}
+
+// ==================== DOOR QUESTION GATE (for exit) ====================
+
+// Override moveTo for exit rooms
+const origMoveTo = moveTo;
+// We handle exit in renderDoors onclick, so when exit is clicked:
+
+// ==================== GAME START ====================
+
+function initStartScreen() {
+  const grid = document.getElementById('class-select');
+  grid.innerHTML = '';
+  CLASSES.forEach(cls => {
+    const card = document.createElement('div');
+    card.className = 'class-card';
+    card.dataset.classId = cls.id;
+    card.innerHTML = `<div class="cc-icon">${cls.icon}</div><div class="cc-name">${cls.name}</div><div class="cc-desc">${cls.desc}</div><div class="cc-bonus">${cls.bonus}</div>`;
+    card.onclick = () => {
+      grid.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    };
+    grid.appendChild(card);
+  });
+  // Select first by default
+  grid.children[0].classList.add('selected');
+}
+
+function startGame() {
+  const nameInput = document.getElementById('name-input');
+  const name = nameInput.value.trim() || 'Hero';
+  const selectedCard = document.querySelector('.class-card.selected');
+  const classId = selectedCard ? selectedCard.dataset.classId : 'warrior';
+  const cls = CLASSES.find(c => c.id === classId);
+
+  G = freshState();
+  G.player.name = name;
+  G.player.classId = classId;
+  G.player.icon = cls.icon;
+  G.player.hp = cls.hp;
+  G.player.maxHp = cls.hp;
+  G.player.atk = cls.atk;
+  G.player.def = cls.def;
+  G.player.wis = cls.wis;
+  G.player.lck = cls.lck;
+
+  // Give starting items
+  addItem('hp_potion');
+  addItem('hp_potion');
+
+  // Generate first floor
+  G.dungeon = generateFloor(1);
+  G.currentRoom = G.dungeon.startKey;
+
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('game').classList.add('active');
+
+  log(`${name} the ${cls.name} enters the dungeon...`, 'gold-log');
+
+  // Override exit door behavior
+  const origRenderDoors = renderDoors;
+
+  renderRoom();
+  updateUI();
+}
+
+// Override moveTo to handle exit
+const _moveTo = moveTo;
+moveTo = function(dir, targetKey) {
+  const target = G.dungeon.rooms[targetKey];
+  if (target.type === 'exit' && G.bossDefeated) {
+    log('Descending to the next floor...', 'purple-log');
+    goToNextFloor();
+    return;
   }
-  
-  logMessage('Adventure begins!');
-  render();
+  _moveTo(dir, targetKey);
+};
+
+// ==================== UTILS ====================
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
-document.addEventListener('keydown', (e) => {
-  if (gameState.inCombat) return;
-  
-  const speed = 15;
-  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') movePlayer(0, -speed);
-  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') movePlayer(0, speed);
-  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePlayer(-speed, 0);
-  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePlayer(speed, 0);
-  if (e.key === 'p' || e.key === 'P') usePotion();
-});
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
-initGame();
+// ==================== INIT ====================
+initStartScreen();
 </script>
 </body>
 </html>
