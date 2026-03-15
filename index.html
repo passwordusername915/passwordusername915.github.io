@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2D Fantasy RPG</title>
+<title>Advanced 2D Fantasy RPG</title>
 <style>
+* { box-sizing: border-box; }
 body { 
   margin: 0; 
   padding: 0; 
@@ -13,13 +14,12 @@ body {
 }
 #gameContainer { 
   width: 100%; 
-  max-width: 900px; 
+  max-width: 1000px; 
   margin: 0 auto; 
   background: linear-gradient(180deg, #1a1f3a 0%, #16213e 100%); 
   padding: 20px; 
   border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.3);
-  min-height: 100vh;
+  color: #fff;
 }
 h1 {
   color: #4ecdc4;
@@ -46,13 +46,24 @@ h1 {
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  cursor: move;
 }
 .npc {
   position: absolute;
   width: 28px;
   height: 28px;
   background: #4ecdc4;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.merchant {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: #ffa500;
   border: 2px solid #fff;
   border-radius: 3px;
   display: flex;
@@ -86,11 +97,11 @@ h1 {
 }
 #ui {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
   margin-bottom: 20px;
 }
-#stats {
+.panel {
   background: #0f2d1d;
   padding: 15px;
   border: 1px solid #0a9e67;
@@ -98,20 +109,13 @@ h1 {
   color: #fff;
   font-size: 13px;
 }
-#stats h3 { margin: 0 0 10px 0; color: #4ecdc4; font-size: 14px; }
+.panel h3 { margin: 0 0 10px 0; color: #4ecdc4; font-size: 14px; }
 .stat-line { display: flex; justify-content: space-between; margin: 5px 0; }
 .stat-label { color: #aaa; }
 #inventory {
-  background: #0f2d1d;
-  padding: 15px;
-  border: 1px solid #0a9e67;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 13px;
   max-height: 150px;
   overflow-y: auto;
 }
-#inventory h3 { margin: 0 0 10px 0; color: #4ecdc4; font-size: 14px; }
 .item {
   background: #1a3d2a;
   padding: 8px;
@@ -119,6 +123,53 @@ h1 {
   border-radius: 4px;
   border-left: 3px solid #ffd700;
   font-size: 12px;
+}
+#shopPanel {
+  display: none;
+  background: #1a2d1f;
+  padding: 20px;
+  border: 2px solid #ffa500;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+#shopPanel h2 { color: #ffa500; margin-top: 0; }
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.shop-item {
+  background: #0f2d1d;
+  padding: 15px;
+  border: 1px solid #0a9e67;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.shop-item:hover {
+  border-color: #ffa500;
+  background: #152d22;
+}
+.shop-item-icon {
+  font-size: 32px;
+  margin: 10px 0;
+}
+.shop-item-name {
+  color: #4ecdc4;
+  font-weight: bold;
+  margin: 5px 0;
+}
+.shop-item-desc {
+  font-size: 12px;
+  color: #aaa;
+  margin: 5px 0;
+}
+.shop-item-price {
+  color: #ffd700;
+  font-weight: bold;
+  margin-top: 10px;
 }
 #combatPanel {
   background: #2d1f1f;
@@ -169,6 +220,12 @@ button.danger {
 button.danger:hover {
   background: #ff3838;
 }
+button.shop-btn {
+  background: #ffa500;
+}
+button.shop-btn:hover {
+  background: #ff8c00;
+}
 #log {
   background: #0f2d1d;
   padding: 15px;
@@ -185,50 +242,73 @@ button.danger:hover {
 </head>
 <body>
 <div id="gameContainer">
-  <h1>⚔️ 2D Fantasy RPG</h1>
+  <h1>⚔️ Advanced 2D Fantasy RPG</h1>
   <div id="gameWorld"></div>
   
   <div id="ui">
-    <div id="stats">
+    <div class="panel" id="stats">
       <h3>Character Stats</h3>
       <div class="stat-line"><span class="stat-label">Level:</span><span id="level">1</span></div>
       <div class="stat-line"><span class="stat-label">HP:</span><span id="hp">100 / 100</span></div>
       <div class="stat-line"><span class="stat-label">Exp:</span><span id="exp">0 / 100</span></div>
       <div class="stat-line"><span class="stat-label">Attack:</span><span id="attack">10</span></div>
       <div class="stat-line"><span class="stat-label">Defense:</span><span id="defense">5</span></div>
-      <div class="stat-line"><span class="stat-label">Gold:</span><span id="gold">0</span></div>
     </div>
     
-    <div id="inventory">
+    <div class="panel" id="resources">
+      <h3>Resources</h3>
+      <div class="stat-line"><span class="stat-label">Gold:</span><span id="gold">0</span></div>
+      <div class="stat-line"><span class="stat-label">Kills:</span><span id="kills">0</span></div>
+      <div class="stat-line"><span class="stat-label">Potions:</span><span id="potionCount">0</span></div>
+    </div>
+    
+    <div class="panel" id="inventory">
       <h3>Inventory</h3>
       <div id="itemsList"></div>
     </div>
+  </div>
+  
+  <div id="shopPanel">
+    <h2>🧙 Wandering Merchant</h2>
+    <p style="color: #aaa;">Spend your gold on useful items</p>
+    <div class="shop-grid" id="shopGrid"></div>
+    <button onclick="closeShop()" class="danger">Close Shop</button>
   </div>
   
   <div id="combatPanel"></div>
   
   <div id="log">
     <p>Game started! Move with arrow keys or WASD.</p>
-    <p>Talk to NPCs (cyan) or fight enemies (red)!</p>
+    <p>Talk to NPCs, find merchants, or fight enemies!</p>
   </div>
   
   <div id="controls">
-    <button onclick="restoreHealth()">Rest (Heal 30 HP)</button>
+    <button class="shop-btn" onclick="toggleShop()">Open Shop</button>
     <button onclick="spawnEnemy()">Spawn Enemy</button>
     <button class="danger" onclick="resetGame()">New Game</button>
   </div>
 </div>
 
 <script>
+const shopItems = [
+  { id: 'health', name: 'Health Potion', icon: '🌿', desc: 'Restores 30 HP', price: 15, type: 'potion', effect: 30 },
+  { id: 'grand', name: 'Grand Potion', icon: '❤️', desc: 'Restores 60 HP', price: 30, type: 'potion', effect: 60 },
+  { id: 'shield', name: 'Shield Scroll', icon: '🛡️', desc: 'Blocks next 20 damage', price: 20, type: 'scroll', effect: 20 },
+  { id: 'time', name: 'Time Crystal', icon: '💎', desc: '+5 on next question', price: 25, type: 'crystal', effect: 5 },
+  { id: 'xp', name: 'XP Tome', icon: '📖', desc: 'Grants 50 XP', price: 35, type: 'tome', effect: 50 }
+];
+
 const gameState = {
-  player: { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0 },
+  player: { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0, kills: 0 },
   enemies: [],
   npcs: [],
   loot: [],
   inventory: [],
+  potions: 0,
   inCombat: false,
   currentEnemy: null,
-  log: []
+  log: [],
+  shopOpen: false
 };
 
 function logMessage(msg) {
@@ -249,6 +329,8 @@ function updateUI() {
   document.getElementById('attack').textContent = gameState.player.attack;
   document.getElementById('defense').textContent = gameState.player.defense;
   document.getElementById('gold').textContent = gameState.player.gold;
+  document.getElementById('kills').textContent = gameState.player.kills;
+  document.getElementById('potionCount').textContent = gameState.potions;
   
   const itemsList = document.getElementById('itemsList');
   if (gameState.inventory.length === 0) {
@@ -256,6 +338,77 @@ function updateUI() {
   } else {
     itemsList.innerHTML = gameState.inventory.map(item => `<div class="item">${item.name} (${item.quantity})</div>`).join('');
   }
+}
+
+function buildShop() {
+  const shopGrid = document.getElementById('shopGrid');
+  shopGrid.innerHTML = shopItems.map(item => `
+    <div class="shop-item" onclick="buyItem('${item.id}')">
+      <div class="shop-item-icon">${item.icon}</div>
+      <div class="shop-item-name">${item.name}</div>
+      <div class="shop-item-desc">${item.desc}</div>
+      <div class="shop-item-price">💰 ${item.price}</div>
+    </div>
+  `).join('');
+}
+
+function toggleShop() {
+  gameState.shopOpen = !gameState.shopOpen;
+  document.getElementById('shopPanel').style.display = gameState.shopOpen ? 'block' : 'none';
+  if (gameState.shopOpen) {
+    buildShop();
+    logMessage('🧙 Welcome to the Wandering Merchant!');
+  }
+}
+
+function closeShop() {
+  gameState.shopOpen = false;
+  document.getElementById('shopPanel').style.display = 'none';
+}
+
+function buyItem(itemId) {
+  const item = shopItems.find(i => i.id === itemId);
+  if (!item) return;
+  
+  if (gameState.player.gold < item.price) {
+    logMessage(`❌ Not enough gold! Need ${item.price}, have ${gameState.player.gold}`);
+    return;
+  }
+  
+  gameState.player.gold -= item.price;
+  
+  if (item.type === 'potion') {
+    gameState.potions += 1;
+    logMessage(`🧪 Bought ${item.name}! (${gameState.potions} total)`);
+  } else if (item.type === 'scroll') {
+    gameState.inventory.push({ name: item.name, quantity: 1, effect: item.effect });
+    logMessage(`📜 Bought ${item.name}!`);
+  } else if (item.type === 'crystal') {
+    gameState.inventory.push({ name: item.name, quantity: 1, effect: item.effect });
+    logMessage(`💎 Bought ${item.name}!`);
+  } else if (item.type === 'tome') {
+    gameState.player.exp += item.effect;
+    logMessage(`📖 Bought ${item.name}! +${item.effect} XP`);
+    if (gameState.player.exp >= gameState.player.expNeeded) {
+      levelUp();
+    }
+  }
+  
+  updateUI();
+}
+
+function usePotion() {
+  if (gameState.potions <= 0) {
+    logMessage('❌ No potions available!');
+    return;
+  }
+  
+  const healed = Math.min(30, gameState.player.maxHP - gameState.player.hp);
+  gameState.player.hp += healed;
+  gameState.potions -= 1;
+  logMessage(`💚 Used potion! Healed ${healed} HP. (${gameState.potions} left)`);
+  updateUI();
+  render();
 }
 
 function render() {
@@ -272,6 +425,16 @@ function render() {
     el.title = npc.name;
     world.appendChild(el);
   });
+  
+  // Render Merchant
+  const merchant = { x: 500, y: 50, name: 'Wandering Merchant' };
+  const merEl = document.createElement('div');
+  merEl.className = 'merchant';
+  merEl.textContent = '🧙';
+  merEl.style.left = merchant.x + 'px';
+  merEl.style.top = merchant.y + 'px';
+  merEl.title = merchant.name;
+  world.appendChild(merEl);
   
   // Render Enemies
   gameState.enemies.forEach((enemy, idx) => {
@@ -306,6 +469,8 @@ function render() {
 }
 
 function movePlayer(dx, dy) {
+  if (gameState.inCombat) return;
+  
   const world = document.getElementById('gameWorld');
   const maxX = world.offsetWidth - 30;
   const maxY = world.offsetHeight - 30;
@@ -318,16 +483,23 @@ function movePlayer(dx, dy) {
 }
 
 function checkCollisions() {
-  // Check NPC collision
+  // Merchant collision
+  const merchant = { x: 500, y: 50 };
+  const merchDist = Math.hypot(gameState.player.x - merchant.x, gameState.player.y - merchant.y);
+  if (merchDist < 35) {
+    toggleShop();
+  }
+  
+  // NPC collision
   gameState.npcs.forEach(npc => {
     const dist = Math.hypot(gameState.player.x - npc.x, gameState.player.y - npc.y);
     if (dist < 35) {
       logMessage(`📢 ${npc.name}: "${npc.message}"`);
-      npc.x = -999; // Hide
+      npc.x = -999;
     }
   });
   
-  // Check Enemy collision
+  // Enemy collision
   gameState.enemies.forEach(enemy => {
     const dist = Math.hypot(gameState.player.x - enemy.x, gameState.player.y - enemy.y);
     if (dist < 35 && !gameState.inCombat) {
@@ -335,7 +507,7 @@ function checkCollisions() {
     }
   });
   
-  // Check Loot collision
+  // Loot collision
   gameState.loot = gameState.loot.filter(item => {
     const dist = Math.hypot(gameState.player.x - item.x, gameState.player.y - item.y);
     if (dist < 35) {
@@ -353,10 +525,12 @@ function startCombat(enemy) {
   gameState.currentEnemy = enemy;
   const combatPanel = document.getElementById('combatPanel');
   combatPanel.innerHTML = `
-    <h3>Battle: ${enemy.name}</h3>
-    <p>Enemy HP: ${enemy.hp} / ${enemy.maxHP}</p>
+    <h3>⚔️ Battle: ${enemy.name}</h3>
+    <p>Enemy HP: <span id="enemyHp">${enemy.hp}</span> / ${enemy.maxHP}</p>
+    <p>Your HP: <span id="playerHp">${gameState.player.hp}</span> / ${gameState.player.maxHP}</p>
     <div class="combat-action" onclick="playerAttack()">Attack (${gameState.player.attack} DMG)</div>
     <div class="combat-action" onclick="playerDefend()">Defend</div>
+    ${gameState.potions > 0 ? `<div class="combat-action" onclick="usePotionCombat()">Use Potion (${gameState.potions})</div>` : ''}
     <div class="combat-action" onclick="playerRun()">Run Away</div>
   `;
   combatPanel.style.display = 'block';
@@ -368,11 +542,12 @@ function playerAttack() {
   const damage = Math.max(1, gameState.player.attack + Math.floor(Math.random() * 5) - 2);
   enemy.hp -= damage;
   logMessage(`💥 You hit for ${damage} damage!`);
+  updateCombatDisplay();
   
   if (enemy.hp <= 0) {
     endCombat(true);
   } else {
-    enemyTurn();
+    setTimeout(enemyTurn, 500);
   }
 }
 
@@ -381,12 +556,24 @@ function playerDefend() {
   const damage = Math.max(1, Math.floor(enemy.attack / 2 + Math.random() * 3));
   gameState.player.hp -= damage;
   logMessage(`🛡️ You defend! Enemy deals ${damage} damage.`);
+  updateCombatDisplay();
   
   if (gameState.player.hp <= 0) {
     endCombat(false);
   } else {
-    enemyTurn();
+    setTimeout(enemyTurn, 500);
   }
+}
+
+function usePotionCombat() {
+  if (gameState.potions <= 0) return;
+  
+  const healed = Math.min(30, gameState.player.maxHP - gameState.player.hp);
+  gameState.player.hp += healed;
+  gameState.potions -= 1;
+  logMessage(`💚 Used potion! Healed ${healed} HP.`);
+  updateCombatDisplay();
+  setTimeout(enemyTurn, 500);
 }
 
 function playerRun() {
@@ -397,7 +584,7 @@ function playerRun() {
     endCombat(null);
   } else {
     logMessage('❌ Escape failed!');
-    enemyTurn();
+    setTimeout(enemyTurn, 500);
   }
 }
 
@@ -406,23 +593,23 @@ function enemyTurn() {
   const damage = Math.max(1, enemy.attack + Math.floor(Math.random() * 4) - 2);
   gameState.player.hp -= damage;
   logMessage(`👹 ${enemy.name} hits for ${damage} damage!`);
+  updateCombatDisplay();
   
   if (gameState.player.hp <= 0) {
     endCombat(false);
-  } else {
-    updateCombatPanel();
   }
 }
 
-function updateCombatPanel() {
+function updateCombatDisplay() {
   const enemy = gameState.currentEnemy;
   const combatPanel = document.getElementById('combatPanel');
   combatPanel.innerHTML = `
-    <h3>Battle: ${enemy.name}</h3>
-    <p>Your HP: ${gameState.player.hp} / ${gameState.player.maxHP}</p>
-    <p>Enemy HP: ${enemy.hp} / ${enemy.maxHP}</p>
+    <h3>⚔️ Battle: ${enemy.name}</h3>
+    <p>Your HP: <span id="playerHp">${gameState.player.hp}</span> / ${gameState.player.maxHP}</p>
+    <p>Enemy HP: <span id="enemyHp">${enemy.hp}</span> / ${enemy.maxHP}</p>
     <div class="combat-action" onclick="playerAttack()">Attack</div>
     <div class="combat-action" onclick="playerDefend()">Defend</div>
+    ${gameState.potions > 0 ? `<div class="combat-action" onclick="usePotionCombat()">Use Potion (${gameState.potions})</div>` : ''}
     <div class="combat-action" onclick="playerRun()">Run Away</div>
   `;
 }
@@ -437,13 +624,13 @@ function endCombat(won) {
     const gold = 25 + Math.floor(Math.random() * 25);
     gameState.player.exp += exp;
     gameState.player.gold += gold;
+    gameState.player.kills += 1;
     logMessage(`🎉 Victory! +${exp} EXP, +${gold} gold!`);
     
     if (gameState.player.exp >= gameState.player.expNeeded) {
       levelUp();
     }
     
-    // Drop loot
     gameState.loot.push({
       x: gameState.currentEnemy.x,
       y: gameState.currentEnemy.y,
@@ -451,7 +638,6 @@ function endCombat(won) {
       value: gold
     });
     
-    // Remove enemy
     gameState.enemies = gameState.enemies.filter(e => e !== gameState.currentEnemy);
   } else if (won === false) {
     logMessage('💀 You were defeated! Game Over.');
@@ -490,32 +676,26 @@ function spawnEnemy() {
   render();
 }
 
-function restoreHealth() {
-  const healed = Math.min(30, gameState.player.maxHP - gameState.player.hp);
-  gameState.player.hp += healed;
-  logMessage(`💚 You rest and heal ${healed} HP!`);
-  render();
-}
-
 function resetGame() {
-  gameState.player = { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0 };
+  gameState.player = { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0, kills: 0 };
   gameState.enemies = [];
   gameState.npcs = [];
   gameState.loot = [];
   gameState.inventory = [];
+  gameState.potions = 0;
   gameState.inCombat = false;
+  gameState.shopOpen = false;
+  document.getElementById('shopPanel').style.display = 'none';
   gameState.log = ['Game reset!'];
   initGame();
 }
 
 function initGame() {
-  // Spawn NPCs
   gameState.npcs = [
-    { x: 400, y: 100, name: 'Elara the Wise', message: 'Welcome, adventurer! Defeat enemies to gain experience.' },
-    { x: 100, y: 350, name: 'Bron the Blacksmith', message: 'Bring me treasure and I will forge you weapons!' }
+    { x: 400, y: 100, name: 'Elara the Wise', message: 'Defeat enemies to gain experience and gold!' },
+    { x: 100, y: 350, name: 'Bron the Blacksmith', message: 'Visit the merchant for powerful items!' }
   ];
   
-  // Spawn initial enemies
   for (let i = 0; i < 2; i++) {
     spawnEnemy();
   }
@@ -524,7 +704,6 @@ function initGame() {
   render();
 }
 
-// Keyboard controls
 document.addEventListener('keydown', (e) => {
   if (gameState.inCombat) return;
   
@@ -533,6 +712,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') movePlayer(0, speed);
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePlayer(-speed, 0);
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePlayer(speed, 0);
+  if (e.key === 'p' || e.key === 'P') usePotion();
 });
 
 initGame();
