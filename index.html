@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Fantasy RPG</title>
+<style>
+body { 
+  margin: 0; 
+  padding: 0; 
+  font-family: Arial, sans-serif; 
+  background: #0a0e27;
+}
+#gameContainer { 
+  width: 100%; 
+  max-width: 900px; 
+  margin: 0 auto; 
+  background: linear-gradient(180deg, #1a1f3a 0%, #16213e 100%); 
+  padding: 20px; 
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.3);
+  min-height: 100vh;
+}
+h1 {
+  color: #4ecdc4;
+  text-align: center;
+  margin-bottom: 10px;
+}
+#gameWorld {
+  width: 100%;
+  height: 400px;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232d5016" width="100" height="100"/><circle cx="20" cy="20" r="8" fill="%23468c20"/><circle cx="80" cy="30" r="6" fill="%23468c20"/><circle cx="60" cy="70" r="7" fill="%23468c20"/><rect x="40" y="50" width="20" height="30" fill="%238b7355"/></svg>');
+  border: 2px solid #0a9e67;
+  position: relative;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.player {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: #ff6b6b;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: move;
+}
+.npc {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: #4ecdc4;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.enemy {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: #ff4757;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.loot {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #ffd700;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+#ui {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+#stats {
+  background: #0f2d1d;
+  padding: 15px;
+  border: 1px solid #0a9e67;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+}
+#stats h3 { margin: 0 0 10px 0; color: #4ecdc4; font-size: 14px; }
+.stat-line { display: flex; justify-content: space-between; margin: 5px 0; }
+.stat-label { color: #aaa; }
+#inventory {
+  background: #0f2d1d;
+  padding: 15px;
+  border: 1px solid #0a9e67;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+#inventory h3 { margin: 0 0 10px 0; color: #4ecdc4; font-size: 14px; }
+.item {
+  background: #1a3d2a;
+  padding: 8px;
+  margin: 5px 0;
+  border-radius: 4px;
+  border-left: 3px solid #ffd700;
+  font-size: 12px;
+}
+#combatPanel {
+  background: #2d1f1f;
+  padding: 15px;
+  border: 1px solid #ff4757;
+  border-radius: 8px;
+  color: #fff;
+  display: none;
+  margin-bottom: 20px;
+}
+#combatPanel h3 { margin: 0 0 10px 0; color: #ff6b6b; }
+.combat-action {
+  background: #4a2a2a;
+  padding: 8px 12px;
+  margin: 5px 0;
+  border: 1px solid #ff4757;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+.combat-action:hover {
+  background: #ff4757;
+  color: #fff;
+}
+#controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+button {
+  padding: 10px 16px;
+  background: #0a9e67;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+button:hover {
+  background: #088e57;
+}
+button.danger {
+  background: #ff4757;
+}
+button.danger:hover {
+  background: #ff3838;
+}
+#log {
+  background: #0f2d1d;
+  padding: 15px;
+  border: 1px solid #0a9e67;
+  border-radius: 8px;
+  color: #4ecdc4;
+  font-size: 12px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: monospace;
+}
+#log p { margin: 5px 0; }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <h1>⚔️ 2D Fantasy RPG</h1>
+  <div id="gameWorld"></div>
+  
+  <div id="ui">
+    <div id="stats">
+      <h3>Character Stats</h3>
+      <div class="stat-line"><span class="stat-label">Level:</span><span id="level">1</span></div>
+      <div class="stat-line"><span class="stat-label">HP:</span><span id="hp">100 / 100</span></div>
+      <div class="stat-line"><span class="stat-label">Exp:</span><span id="exp">0 / 100</span></div>
+      <div class="stat-line"><span class="stat-label">Attack:</span><span id="attack">10</span></div>
+      <div class="stat-line"><span class="stat-label">Defense:</span><span id="defense">5</span></div>
+      <div class="stat-line"><span class="stat-label">Gold:</span><span id="gold">0</span></div>
+    </div>
+    
+    <div id="inventory">
+      <h3>Inventory</h3>
+      <div id="itemsList"></div>
+    </div>
+  </div>
+  
+  <div id="combatPanel"></div>
+  
+  <div id="log">
+    <p>Game started! Move with arrow keys or WASD.</p>
+    <p>Talk to NPCs (cyan) or fight enemies (red)!</p>
+  </div>
+  
+  <div id="controls">
+    <button onclick="restoreHealth()">Rest (Heal 30 HP)</button>
+    <button onclick="spawnEnemy()">Spawn Enemy</button>
+    <button class="danger" onclick="resetGame()">New Game</button>
+  </div>
+</div>
+
+<script>
+const gameState = {
+  player: { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0 },
+  enemies: [],
+  npcs: [],
+  loot: [],
+  inventory: [],
+  inCombat: false,
+  currentEnemy: null,
+  log: []
+};
+
+function logMessage(msg) {
+  gameState.log.unshift(msg);
+  if (gameState.log.length > 5) gameState.log.pop();
+  updateLog();
+}
+
+function updateLog() {
+  const logEl = document.getElementById('log');
+  logEl.innerHTML = gameState.log.map(m => `<p>${m}</p>`).join('');
+}
+
+function updateUI() {
+  document.getElementById('level').textContent = gameState.player.level;
+  document.getElementById('hp').textContent = `${gameState.player.hp} / ${gameState.player.maxHP}`;
+  document.getElementById('exp').textContent = `${gameState.player.exp} / ${gameState.player.expNeeded}`;
+  document.getElementById('attack').textContent = gameState.player.attack;
+  document.getElementById('defense').textContent = gameState.player.defense;
+  document.getElementById('gold').textContent = gameState.player.gold;
+  
+  const itemsList = document.getElementById('itemsList');
+  if (gameState.inventory.length === 0) {
+    itemsList.innerHTML = '<div style="color: #888;">No items yet</div>';
+  } else {
+    itemsList.innerHTML = gameState.inventory.map(item => `<div class="item">${item.name} (${item.quantity})</div>`).join('');
+  }
+}
+
+function render() {
+  const world = document.getElementById('gameWorld');
+  world.innerHTML = '';
+  
+  // Render NPCs
+  gameState.npcs.forEach(npc => {
+    const el = document.createElement('div');
+    el.className = 'npc';
+    el.textContent = '🧙';
+    el.style.left = npc.x + 'px';
+    el.style.top = npc.y + 'px';
+    el.title = npc.name;
+    world.appendChild(el);
+  });
+  
+  // Render Enemies
+  gameState.enemies.forEach((enemy, idx) => {
+    const el = document.createElement('div');
+    el.className = 'enemy';
+    el.textContent = '👹';
+    el.style.left = enemy.x + 'px';
+    el.style.top = enemy.y + 'px';
+    el.title = `${enemy.name} (${enemy.hp}/${enemy.maxHP})`;
+    world.appendChild(el);
+  });
+  
+  // Render Loot
+  gameState.loot.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'loot';
+    el.textContent = '💰';
+    el.style.left = item.x + 'px';
+    el.style.top = item.y + 'px';
+    world.appendChild(el);
+  });
+  
+  // Render Player
+  const playerEl = document.createElement('div');
+  playerEl.className = 'player';
+  playerEl.textContent = '⚔️';
+  playerEl.style.left = gameState.player.x + 'px';
+  playerEl.style.top = gameState.player.y + 'px';
+  world.appendChild(playerEl);
+  
+  updateUI();
+}
+
+function movePlayer(dx, dy) {
+  const world = document.getElementById('gameWorld');
+  const maxX = world.offsetWidth - 30;
+  const maxY = world.offsetHeight - 30;
+  
+  gameState.player.x = Math.max(0, Math.min(maxX, gameState.player.x + dx));
+  gameState.player.y = Math.max(0, Math.min(maxY, gameState.player.y + dy));
+  
+  checkCollisions();
+  render();
+}
+
+function checkCollisions() {
+  // Check NPC collision
+  gameState.npcs.forEach(npc => {
+    const dist = Math.hypot(gameState.player.x - npc.x, gameState.player.y - npc.y);
+    if (dist < 35) {
+      logMessage(`📢 ${npc.name}: "${npc.message}"`);
+      npc.x = -999; // Hide
+    }
+  });
+  
+  // Check Enemy collision
+  gameState.enemies.forEach(enemy => {
+    const dist = Math.hypot(gameState.player.x - enemy.x, gameState.player.y - enemy.y);
+    if (dist < 35 && !gameState.inCombat) {
+      startCombat(enemy);
+    }
+  });
+  
+  // Check Loot collision
+  gameState.loot = gameState.loot.filter(item => {
+    const dist = Math.hypot(gameState.player.x - item.x, gameState.player.y - item.y);
+    if (dist < 35) {
+      gameState.inventory.push({ name: item.name, quantity: 1 });
+      logMessage(`🎁 Found ${item.name}!`);
+      gameState.player.gold += item.value;
+      return false;
+    }
+    return true;
+  });
+}
+
+function startCombat(enemy) {
+  gameState.inCombat = true;
+  gameState.currentEnemy = enemy;
+  const combatPanel = document.getElementById('combatPanel');
+  combatPanel.innerHTML = `
+    <h3>Battle: ${enemy.name}</h3>
+    <p>Enemy HP: ${enemy.hp} / ${enemy.maxHP}</p>
+    <div class="combat-action" onclick="playerAttack()">Attack (${gameState.player.attack} DMG)</div>
+    <div class="combat-action" onclick="playerDefend()">Defend</div>
+    <div class="combat-action" onclick="playerRun()">Run Away</div>
+  `;
+  combatPanel.style.display = 'block';
+  logMessage(`⚔️ Battle started with ${enemy.name}!`);
+}
+
+function playerAttack() {
+  const enemy = gameState.currentEnemy;
+  const damage = Math.max(1, gameState.player.attack + Math.floor(Math.random() * 5) - 2);
+  enemy.hp -= damage;
+  logMessage(`💥 You hit for ${damage} damage!`);
+  
+  if (enemy.hp <= 0) {
+    endCombat(true);
+  } else {
+    enemyTurn();
+  }
+}
+
+function playerDefend() {
+  const enemy = gameState.currentEnemy;
+  const damage = Math.max(1, Math.floor(enemy.attack / 2 + Math.random() * 3));
+  gameState.player.hp -= damage;
+  logMessage(`🛡️ You defend! Enemy deals ${damage} damage.`);
+  
+  if (gameState.player.hp <= 0) {
+    endCombat(false);
+  } else {
+    enemyTurn();
+  }
+}
+
+function playerRun() {
+  if (Math.random() > 0.5) {
+    logMessage('🏃 You escaped!');
+    gameState.player.x = 50;
+    gameState.player.y = 50;
+    endCombat(null);
+  } else {
+    logMessage('❌ Escape failed!');
+    enemyTurn();
+  }
+}
+
+function enemyTurn() {
+  const enemy = gameState.currentEnemy;
+  const damage = Math.max(1, enemy.attack + Math.floor(Math.random() * 4) - 2);
+  gameState.player.hp -= damage;
+  logMessage(`👹 ${enemy.name} hits for ${damage} damage!`);
+  
+  if (gameState.player.hp <= 0) {
+    endCombat(false);
+  } else {
+    updateCombatPanel();
+  }
+}
+
+function updateCombatPanel() {
+  const enemy = gameState.currentEnemy;
+  const combatPanel = document.getElementById('combatPanel');
+  combatPanel.innerHTML = `
+    <h3>Battle: ${enemy.name}</h3>
+    <p>Your HP: ${gameState.player.hp} / ${gameState.player.maxHP}</p>
+    <p>Enemy HP: ${enemy.hp} / ${enemy.maxHP}</p>
+    <div class="combat-action" onclick="playerAttack()">Attack</div>
+    <div class="combat-action" onclick="playerDefend()">Defend</div>
+    <div class="combat-action" onclick="playerRun()">Run Away</div>
+  `;
+}
+
+function endCombat(won) {
+  gameState.inCombat = false;
+  const combatPanel = document.getElementById('combatPanel');
+  combatPanel.style.display = 'none';
+  
+  if (won) {
+    const exp = 50;
+    const gold = 25 + Math.floor(Math.random() * 25);
+    gameState.player.exp += exp;
+    gameState.player.gold += gold;
+    logMessage(`🎉 Victory! +${exp} EXP, +${gold} gold!`);
+    
+    if (gameState.player.exp >= gameState.player.expNeeded) {
+      levelUp();
+    }
+    
+    // Drop loot
+    gameState.loot.push({
+      x: gameState.currentEnemy.x,
+      y: gameState.currentEnemy.y,
+      name: 'Treasure',
+      value: gold
+    });
+    
+    // Remove enemy
+    gameState.enemies = gameState.enemies.filter(e => e !== gameState.currentEnemy);
+  } else if (won === false) {
+    logMessage('💀 You were defeated! Game Over.');
+    setTimeout(() => resetGame(), 2000);
+  } else {
+    logMessage('🏃 You ran away!');
+  }
+  
+  gameState.currentEnemy = null;
+  render();
+}
+
+function levelUp() {
+  gameState.player.level++;
+  gameState.player.exp = 0;
+  gameState.player.expNeeded += 50;
+  gameState.player.attack += 3;
+  gameState.player.defense += 2;
+  gameState.player.maxHP += 20;
+  gameState.player.hp = gameState.player.maxHP;
+  logMessage(`⭐ Level Up! You are now level ${gameState.player.level}!`);
+}
+
+function spawnEnemy() {
+  const enemies = [
+    { name: 'Goblin', hp: 15, maxHP: 15, attack: 5 },
+    { name: 'Orc', hp: 25, maxHP: 25, attack: 8 },
+    { name: 'Troll', hp: 40, maxHP: 40, attack: 12 },
+    { name: 'Dragon', hp: 60, maxHP: 60, attack: 15 }
+  ];
+  const enemy = JSON.parse(JSON.stringify(enemies[Math.floor(Math.random() * enemies.length)]));
+  enemy.x = Math.random() * 350 + 100;
+  enemy.y = Math.random() * 300 + 50;
+  gameState.enemies.push(enemy);
+  logMessage(`👹 A ${enemy.name} appeared!`);
+  render();
+}
+
+function restoreHealth() {
+  const healed = Math.min(30, gameState.player.maxHP - gameState.player.hp);
+  gameState.player.hp += healed;
+  logMessage(`💚 You rest and heal ${healed} HP!`);
+  render();
+}
+
+function resetGame() {
+  gameState.player = { x: 200, y: 180, hp: 100, maxHP: 100, level: 1, exp: 0, expNeeded: 100, attack: 10, defense: 5, gold: 0 };
+  gameState.enemies = [];
+  gameState.npcs = [];
+  gameState.loot = [];
+  gameState.inventory = [];
+  gameState.inCombat = false;
+  gameState.log = ['Game reset!'];
+  initGame();
+}
+
+function initGame() {
+  // Spawn NPCs
+  gameState.npcs = [
+    { x: 400, y: 100, name: 'Elara the Wise', message: 'Welcome, adventurer! Defeat enemies to gain experience.' },
+    { x: 100, y: 350, name: 'Bron the Blacksmith', message: 'Bring me treasure and I will forge you weapons!' }
+  ];
+  
+  // Spawn initial enemies
+  for (let i = 0; i < 2; i++) {
+    spawnEnemy();
+  }
+  
+  logMessage('Adventure begins!');
+  render();
+}
+
+// Keyboard controls
+document.addEventListener('keydown', (e) => {
+  if (gameState.inCombat) return;
+  
+  const speed = 15;
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') movePlayer(0, -speed);
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') movePlayer(0, speed);
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePlayer(-speed, 0);
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePlayer(speed, 0);
+});
+
+initGame();
+</script>
+</body>
+</html>
